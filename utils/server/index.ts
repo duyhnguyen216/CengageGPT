@@ -1,7 +1,7 @@
 import { Message } from '@/types/chat';
 import { OpenAIModel } from '@/types/openai';
 
-import { AZURE_DEPLOYMENT_ID, OPENAI_API_HOST, OPENAI_API_TYPE, OPENAI_API_VERSION, OPENAI_ORGANIZATION } from '../app/const';
+import { OPENAI_API_HOST, OPENAI_API_TYPE, OPENAI_API_VERSION, OPENAI_ORGANIZATION, PROMPT_MOD } from '../app/const';
 
 import {
   ParsedEvent,
@@ -23,6 +23,7 @@ export class OpenAIError extends Error {
   }
 }
 
+//Chat API call
 export const OpenAIStream = async (
   model: OpenAIModel,
   systemPrompt: string,
@@ -32,8 +33,9 @@ export const OpenAIStream = async (
 ) => {
   let url = `${OPENAI_API_HOST}/v1/chat/completions`;
   if (OPENAI_API_TYPE === 'azure') {
-    url = `${OPENAI_API_HOST}/openai/deployments/${AZURE_DEPLOYMENT_ID}/chat/completions?api-version=${OPENAI_API_VERSION}`;
+    url = `${OPENAI_API_HOST}/openai/deployments/${model.id}/chat/completions?api-version=${OPENAI_API_VERSION}`;
   }
+
   const res = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',
@@ -53,7 +55,7 @@ export const OpenAIStream = async (
       messages: [
         {
           role: 'system',
-          content: systemPrompt,
+          content: systemPrompt + PROMPT_MOD,
         },
         ...messages,
       ],

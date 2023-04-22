@@ -6,6 +6,7 @@ export const config = {
   runtime: 'edge',
 };
 
+//List available models API call
 const handler = async (req: Request): Promise<Response> => {
   try {
     const { key } = (await req.json()) as {

@@ -71,11 +71,36 @@ function currentDate() {
   return `${month}-${day}`;
 }
 
-export const exportData = () => {
+async function getUserInfo() {
+  try {
+    const response = await fetch('/.auth/me');
+
+    // Check if the response is ok (status code 200-299)
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    // Handle any errors that occurred during the fetch or parsing process
+    console.error('Error fetching data:', error);
+  }
+}
+
+export const exportData = async () => {
   let history = localStorage.getItem('conversationHistory');
   let folders = localStorage.getItem('folders');
   let prompts = localStorage.getItem('prompts');
-
+  
+  const userInfo = await getUserInfo();
+  let username = 'local_user';
+  if (userInfo != undefined && userInfo[0].user_id != undefined) {
+    username = userInfo[0].user_id;
+  }
+  
+  console.log("USERNAME: " + username);
+  console.log("USER INFO: " + userInfo[0]);
   if (history) {
     history = JSON.parse(history);
   }
@@ -90,6 +115,8 @@ export const exportData = () => {
 
   const data = {
     version: 4,
+    //user: userInfo.user_id,
+    username: username,
     history: history || [],
     folders: folders || [],
     prompts: prompts || [],
@@ -109,6 +136,8 @@ export const exportData = () => {
   URL.revokeObjectURL(url);
 };
 
+
+// TODO: This should be deprecated once we have the db working
 export const importData = (
   data: SupportedExportFormats,
 ): LatestExportFormat => {

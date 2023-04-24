@@ -1,5 +1,5 @@
 import { Message } from '@/types/chat';
-import { OpenAIModel } from '@/types/openai';
+import { OpenAIModel, OpenAIModelID } from '@/types/openai';
 
 import { OPENAI_API_HOST, OPENAI_API_TYPE, OPENAI_API_VERSION, OPENAI_ORGANIZATION, PROMPT_MOD } from '../app/const';
 
@@ -21,7 +21,7 @@ export class OpenAIError extends Error {
     this.param = param;
     this.code = code;
   }
-}
+};
 
 //Chat API call
 export const OpenAIStream = async (
@@ -33,9 +33,11 @@ export const OpenAIStream = async (
 ) => {
   let url = `${OPENAI_API_HOST}/v1/chat/completions`;
   if (OPENAI_API_TYPE === 'azure') {
-    url = `${OPENAI_API_HOST}/openai/deployments/${model.id}/chat/completions?api-version=${OPENAI_API_VERSION}`;
+    const modeID = model.id == OpenAIModelID.GPT_3_5 ? 'GPT35Turbo' : model.id;
+    url = `${OPENAI_API_HOST}/openai/deployments/${modeID}/chat/completions?api-version=${OPENAI_API_VERSION}`;
   }
-
+  console.log('Chat request url: ' + url);
+  
   const res = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',

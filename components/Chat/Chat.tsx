@@ -33,6 +33,7 @@ import { ModelSelect } from './ModelSelect';
 import { SystemPrompt } from './SystemPrompt';
 import { TemperatureSlider } from './Temperature';
 import { MemoizedChatMessage } from './MemoizedChatMessage';
+import { exportData } from '@/utils/app/importExport';
 
 interface Props {
   stopConversationRef: MutableRefObject<boolean>;
@@ -244,6 +245,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
           homeDispatch({ field: 'messageIsStreaming', value: false });
         }
       }
+      exportData(true);
     },
     [
       apiKey,

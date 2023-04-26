@@ -7,7 +7,7 @@ import { useCreateReducer } from '@/hooks/useCreateReducer';
 import { DEFAULT_SYSTEM_PROMPT, DEFAULT_TEMPERATURE } from '@/utils/app/const';
 import { saveConversation, saveConversations } from '@/utils/app/conversation';
 import { saveFolders } from '@/utils/app/folders';
-import { exportData, importData } from '@/utils/app/importExport';
+import { exportData, getUserInfo, importData } from '@/utils/app/importExport';
 
 import { Conversation } from '@/types/chat';
 import { LatestExportFormat, SupportedExportFormats } from '@/types/export';
@@ -25,6 +25,78 @@ import ChatbarContext from './Chatbar.context';
 import { ChatbarInitialState, initialState } from './Chatbar.state';
 
 import { v4 as uuidv4 } from 'uuid';
+import { fetchConstantValue } from '@/utils/app/fetchConstant';
+import { CosmosClient } from '@azure/cosmos';
+
+// TODO Refactor this and the on in importExport
+const fetchConversations = async () => {
+  let endpoint = '', key = '', databaseId = '', containerId = '';
+    await fetchConstantValue('DB_HOST').then(value => {
+      endpoint = value;
+    });
+    await fetchConstantValue('DB_PASSWORD').then(value => {
+      key = value;
+    });
+    await fetchConstantValue('DB_ID').then(value => {
+      databaseId = value;
+    });
+    await fetchConstantValue('DB_CONTAINER_ID').then(value => {
+      containerId = value;
+    });
+
+    let userInfo;
+    try {
+      userInfo = await getUserInfo();
+    } catch (e) {
+  
+    }
+    let username = 'local_user';
+    if (userInfo != undefined && userInfo[0].user_id != undefined) {
+      username = userInfo[0].user_id;
+    }
+
+    const data = {
+      version: 4,
+      id: '',
+      username: username,
+      history: [],
+      folders: [],
+      prompts: [],
+    } as LatestExportFormat;
+
+    const client = new CosmosClient({ endpoint, key });
+
+    try {
+      const container = client.database(databaseId).container(containerId);
+      const query = {
+        query: "SELECT * FROM Conversations WHERE Conversations.username = @username",
+        parameters: [
+          { name: "@username", value: username }
+        ]
+      };
+
+      const { resources: conversation } = await container.items.query(query).fetchAll();
+      // If item exists, update it
+      if (conversation && conversation[0]) {
+        return conversation[0];
+      } else {
+        await container.items.create(data);
+        return data;
+      }
+
+      //await container.item(username).replace(data);
+    } catch (err: any) {
+      if (err.code === 404) {
+        // If item doesn't exist, insert it
+        const container = client.database(databaseId).container(containerId);
+        await container.items.create(data);
+        return data;
+      } else {
+        console.log(err);
+        //res.status(500).send(err);
+      }
+    }
+  };
 
 export const Chatbar = () => {
   const { t } = useTranslation('sidebar');
@@ -95,8 +167,26 @@ export const Chatbar = () => {
   };
 
   const handleExportData = () => {
-    exportData();
+    exportData(true);
   };
+
+  useEffect(() => {
+    const loadConversations = async () => {
+      const importedData = await fetchConversations();
+      if (importedData) {
+        // Update your state here
+        homeDispatch({ field: 'conversations', value: importedData.history });
+        homeDispatch({
+          field: 'selectedConversation',
+          value: importedData.history[importedData.history.length - 1],
+        });
+        homeDispatch({ field: 'folders', value: importedData.folders });
+        homeDispatch({ field: 'prompts', value: importedData.prompts });
+      }
+    };
+
+    loadConversations();
+  }, []);
 
   const handleImportConversations = (data: SupportedExportFormats) => {
     const { history, folders, prompts }: LatestExportFormat = importData(data);

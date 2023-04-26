@@ -1,4 +1,5 @@
 import { Conversation } from '@/types/chat';
+import { CosmosClient } from '@azure/cosmos';
 import {
   ExportFormatV1,
   ExportFormatV2,
@@ -11,6 +12,7 @@ import { FolderInterface } from '@/types/folder';
 import { Prompt } from '@/types/prompt';
 
 import { cleanConversationHistory } from './clean';
+import { fetchConstantValue } from './fetchConstant'
 
 export function isExportFormatV1(obj: any): obj is ExportFormatV1 {
   return Array.isArray(obj);
@@ -34,6 +36,8 @@ export function cleanData(data: SupportedExportFormats): LatestExportFormat {
   if (isExportFormatV1(data)) {
     return {
       version: 4,
+      id: '',
+      username: '',
       history: cleanConversationHistory(data),
       folders: [],
       prompts: [],
@@ -43,6 +47,8 @@ export function cleanData(data: SupportedExportFormats): LatestExportFormat {
   if (isExportFormatV2(data)) {
     return {
       version: 4,
+      id: '',
+      username: '',
       history: cleanConversationHistory(data.history || []),
       folders: (data.folders || []).map((chatFolder) => ({
         id: chatFolder.id.toString(),
@@ -54,7 +60,7 @@ export function cleanData(data: SupportedExportFormats): LatestExportFormat {
   }
 
   if (isExportFormatV3(data)) {
-    return { ...data, version: 4, prompts: [] };
+    return { ...data, version: 4, id: '', username: '', prompts: [] };
   }
 
   if (isExportFormatV4(data)) {
@@ -71,7 +77,8 @@ function currentDate() {
   return `${month}-${day}`;
 }
 
-async function getUserInfo() {
+//Get the full log in info from Azure Easy Auth use the first element in the return array
+export async function getUserInfo() {
   try {
     const response = await fetch('/.auth/me');
 
@@ -88,19 +95,22 @@ async function getUserInfo() {
   }
 }
 
-export const exportData = async () => {
+export const exportData = async (writeToDatabase = false) => {
   let history = localStorage.getItem('conversationHistory');
   let folders = localStorage.getItem('folders');
   let prompts = localStorage.getItem('prompts');
-  
-  const userInfo = await getUserInfo();
+  let userInfo;
+
+  try {
+    userInfo = await getUserInfo();
+  } catch (e) {
+
+  }
   let username = 'local_user';
   if (userInfo != undefined && userInfo[0].user_id != undefined) {
     username = userInfo[0].user_id;
   }
-  
-  console.log("USERNAME: " + username);
-  console.log("USER INFO: " + userInfo[0]);
+
   if (history) {
     history = JSON.parse(history);
   }
@@ -115,25 +125,78 @@ export const exportData = async () => {
 
   const data = {
     version: 4,
-    //user: userInfo.user_id,
+    id: '',
     username: username,
     history: history || [],
     folders: folders || [],
     prompts: prompts || [],
   } as LatestExportFormat;
 
-  const blob = new Blob([JSON.stringify(data, null, 2)], {
-    type: 'application/json',
-  });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.download = `chatbot_ui_history_${currentDate()}.json`;
-  link.href = url;
-  link.style.display = 'none';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  if (writeToDatabase) {
+
+    //TODO implement error handling
+    let endpoint = '', key = '', databaseId = '', containerId = '';
+    await fetchConstantValue('DB_HOST').then(value => {
+      endpoint = value;
+    });
+    await fetchConstantValue('DB_PASSWORD').then(value => {
+      key = value;
+    });
+    await fetchConstantValue('DB_ID').then(value => {
+      databaseId = value;
+    });
+    await fetchConstantValue('DB_CONTAINER_ID').then(value => {
+      containerId = value;
+    });
+
+    const client = new CosmosClient({ endpoint, key });
+
+    try {
+      const { username } = data;
+      // TODO this part can probably be refactored, combine with the function in Chatbar 
+      const query = {
+        query: "SELECT * FROM Conversations WHERE Conversations.username = @username",
+        parameters: [
+          { name: "@username", value: username }
+        ]
+      };
+
+      const container = client.database(databaseId).container(containerId);
+      const { resources: conversation } = await container.items.query(query).fetchAll();
+      // If item exists, update it
+      if (conversation && conversation[0]) {
+        data.id = conversation[0].id;
+        await container.item(conversation[0].id).replace(data);
+      } else {
+        await container.items.create(data);
+      }
+      console.log("Getting convo: " + conversation);
+      //await container.item(username).replace(data);
+    } catch (err: any) {
+      if (err.code === 404) {
+        // If item doesn't exist, insert it
+        const container = client.database(databaseId).container(containerId);
+        await container.items.create(data);
+      } else {
+        console.log(err);
+        //res.status(500).send(err);
+      }
+    }
+  }
+
+  return JSON.stringify(data);
+  // const blob = new Blob([JSON.stringify(data, null, 2)], {
+  //   type: 'application/json',
+  // });
+  // const url = URL.createObjectURL(blob);
+  // const link = document.createElement('a');
+  // link.download = `chatbot_ui_history_${currentDate()}.json`;
+  // link.href = url;
+  // link.style.display = 'none';
+  // document.body.appendChild(link);
+  // link.click();
+  // document.body.removeChild(link);
+  // URL.revokeObjectURL(url);
 };
 
 
@@ -186,8 +249,11 @@ export const importData = (
 
   return {
     version: 4,
+    id: '',
+    username: '',
     history: newHistory,
     folders: newFolders,
     prompts: newPrompts,
   };
 };
+

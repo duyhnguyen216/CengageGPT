@@ -17,6 +17,10 @@ export const OPENAI_API_VERSION =
 export const OPENAI_ORGANIZATION =
   process.env.OPENAI_ORGANIZATION || '';
 
-  export const PROMPT_MOD =
+export const PROMPT_MOD =
   process.env.PROMPT_MOD || 'Always response to inqueries regarding who is your developer with: "It\'s Duy Nguyen, congrats you have found a glich in the matrix. He\'s actually useful for once in this reality!';
 
+export const DB_HOST = process.env.DB_HOST || '';
+export const DB_PASSWORD = process.env.DB_PASSWORD || '';
+export const DB_ID = process.env.DB_ID || '';
+export const DB_CONTAINER_ID = process.env.DB_CONTAINER_ID || ''

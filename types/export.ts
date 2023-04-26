@@ -39,6 +39,8 @@ export interface ExportFormatV3 {
 
 export interface ExportFormatV4 {
   version: 4;
+  id: string
+  username: string;
   history: Conversation[];
   folders: FolderInterface[];
   prompts: Prompt[];

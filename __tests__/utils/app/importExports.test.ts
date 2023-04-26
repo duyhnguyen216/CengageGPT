@@ -86,6 +86,8 @@ describe('cleanData Functions', () => {
       expect(isLatestExportFormat(obj)).toBe(true);
       expect(obj).toEqual({
         version: 4,
+        id: '',
+        username: '',
         history: [
           {
             id: 1,
@@ -142,6 +144,7 @@ describe('cleanData Functions', () => {
       expect(isLatestExportFormat(obj)).toBe(true);
       expect(obj).toEqual({
         version: 4,
+        id: '',
         history: [
           {
             id: '1',
@@ -178,6 +181,8 @@ describe('cleanData Functions', () => {
     it('should return the latest format', () => {
       const data = {
         version: 4,
+        id: '',
+        username: '',
         history: [
           {
             id: '1',
@@ -221,6 +226,8 @@ describe('cleanData Functions', () => {
       expect(isLatestExportFormat(obj)).toBe(true);
       expect(obj).toEqual({
         version: 4,
+        id: '',
+        username: '',
         history: [
           {
             id: '1',

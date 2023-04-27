@@ -170,7 +170,6 @@ export const exportData = async (writeToDatabase = false) => {
       } else {
         await container.items.create(data);
       }
-      console.log("Getting convo: " + conversation);
       //await container.item(username).replace(data);
     } catch (err: any) {
       if (err.code === 404) {

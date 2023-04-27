@@ -39,6 +39,7 @@ import HomeContext from './home.context';
 import { HomeInitialState, initialState } from './home.state';
 
 import { v4 as uuidv4 } from 'uuid';
+import { PluginKey } from '@/types/plugin';
 
 interface Props {
   serverSideApiKeyIsSet: boolean;
@@ -268,7 +269,13 @@ const Home = ({
       dispatch({ field: 'apiKey', value: apiKey });
     }
 
-    const pluginKeys = localStorage.getItem('pluginKeys');
+
+    let pluginKeys : PluginKey[] = [];
+    const data = localStorage.getItem('pluginKeys');
+    if (data) {
+       pluginKeys = JSON.parse(data.toString());
+    }
+    
     if (serverSidePluginKeysSet) {
       dispatch({ field: 'pluginKeys', value: [] });
       localStorage.removeItem('pluginKeys');

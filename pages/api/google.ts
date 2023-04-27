@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 
-import { OPENAI_API_HOST } from '@/utils/app/const';
+import { OPENAI_API_HOST, OPENAI_API_TYPE, OPENAI_API_VERSION, OPENAI_ORGANIZATION } from '@/utils/app/const';
 import { cleanSourceText } from '@/utils/server/google';
 
 import { Message } from '@/types/chat';
@@ -9,6 +9,7 @@ import { GoogleBody, GoogleSource } from '@/types/google';
 import { Readability } from '@mozilla/readability';
 import endent from 'endent';
 import jsdom, { JSDOM } from 'jsdom';
+import { OpenAIModelID } from '@/types/openai';
 
 const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
   try {
@@ -23,7 +24,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
         googleAPIKey ? googleAPIKey : process.env.GOOGLE_API_KEY
       }&cx=${
         googleCSEId ? googleCSEId : process.env.GOOGLE_CSE_ID
-      }&q=${query}&num=5`,
+      }&q=${query}&num=3`,
     );
 
     const googleData = await googleRes.json();
@@ -33,7 +34,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
       link: item.link,
       displayLink: item.displayLink,
       snippet: item.snippet,
-      image: item.pagemap?.cse_image?.[0]?.src,
+      //image: item.pagemap?.cse_image?.[0]?.src,
       text: '',
     }));
 
@@ -41,7 +42,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
       sources.map(async (source) => {
         try {
           const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Request timed out')), 5000),
+            setTimeout(() => reject(new Error('Request timed out')), 10000),
           );
 
           const res = (await Promise.race([
@@ -85,7 +86,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
     const filteredSources: GoogleSource[] = sourcesWithText.filter(Boolean);
 
     const answerPrompt = endent`
-    Provide me with the information I requested. Use the sources to provide an accurate response. Respond in markdown format. Cite the sources you used as a markdown link as you use them at the end of each sentence by number of the source (ex: [[1]](link.com)). Provide an accurate response and then stop. Today's date is ${new Date().toLocaleDateString()}.
+    Provide me with the information I requested. Use the sources to provide an accurate response. Respond in markdown format, but do not include the "answer" field. Cite the sources you used as a markdown link as you use them at the end of each sentence by number of the source (ex: [[1]](link.com)). Provide an accurate response and then stop. Today's date is ${new Date().toLocaleDateString()}. 
 
     Example Input:
     What's the weather in San Francisco today?
@@ -111,13 +112,19 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
     `;
 
     const answerMessage: Message = { role: 'user', content: answerPrompt };
-
-    const answerRes = await fetch(`${OPENAI_API_HOST}/v1/chat/completions`, {
+    const modeID = model.id == OpenAIModelID.GPT_3_5 ? 'GPT35Turbo' : model.id;
+    const url = `${OPENAI_API_HOST}/openai/deployments/${modeID}/chat/completions?api-version=${OPENAI_API_VERSION}`;
+    const answerRes = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${key ? key : process.env.OPENAI_API_KEY}`,
-        ...(process.env.OPENAI_ORGANIZATION && {
-          'OpenAI-Organization': process.env.OPENAI_ORGANIZATION,
+        ...(OPENAI_API_TYPE === 'openai' && {
+          Authorization: `Bearer ${key ? key : process.env.OPENAI_API_KEY}`
+        }),
+        ...(OPENAI_API_TYPE === 'azure' && {
+          'api-key': `${key ? key : process.env.OPENAI_API_KEY}`
+        }),
+        ...((OPENAI_API_TYPE === 'openai' && OPENAI_ORGANIZATION) && {
+          'OpenAI-Organization': OPENAI_ORGANIZATION,
         }),
       },
       method: 'POST',
@@ -126,11 +133,11 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
         messages: [
           {
             role: 'system',
-            content: `Use the sources to provide an accurate response. Respond in markdown format. Cite the sources you used as [1](link), etc, as you use them. Maximum 4 sentences.`,
+            content: `Use the sources to provide an accurate response. Respond in markdown format. Cite the sources you used as [1](link), etc, as you use them. Maximum 5 sentences. If you can not answer, print out the sources that were given to you in markdown format with a small summary.`,
           },
           answerMessage,
         ],
-        max_tokens: 1000,
+        max_tokens: 2000,
         temperature: 1,
         stream: false,
       }),
@@ -139,7 +146,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
     const { choices: choices2 } = await answerRes.json();
     const answer = choices2[0].message.content;
 
-    res.status(200).json({ answer });
+    res.status(200).send(answer);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error'})

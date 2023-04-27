@@ -21,7 +21,7 @@ import {
 import { throttle } from '@/utils/data/throttle';
 
 import { ChatBody, Conversation, Message } from '@/types/chat';
-import { Plugin } from '@/types/plugin';
+import { Plugin, PluginKey } from '@/types/plugin';
 
 import HomeContext from '@/pages/api/home/home.context';
 
@@ -103,9 +103,9 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
         };
         const endpoint = getEndpoint(plugin);
         let body;
-        if (!plugin) {
+        if (!plugin) { //Regular chat
           body = JSON.stringify(chatBody);
-        } else {
+        } else if (pluginKeys) { //Using plugin such as google
           body = JSON.stringify({
             ...chatBody,
             googleAPIKey: pluginKeys
@@ -121,6 +121,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'plugin': pluginKeys.toString(),
           },
           signal: controller.signal,
           body,
@@ -131,119 +132,91 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
           toast.error(response.statusText);
           return;
         }
+        
         const data = response.body;
+        
         if (!data) {
           homeDispatch({ field: 'loading', value: false });
           homeDispatch({ field: 'messageIsStreaming', value: false });
           return;
         }
-        if (!plugin) {
-          if (updatedConversation.messages.length === 1) {
-            const { content } = message;
-            const customName =
-              content.length > 30 ? content.substring(0, 30) + '...' : content;
-            updatedConversation = {
-              ...updatedConversation,
-              name: customName,
-            };
-          }
-          homeDispatch({ field: 'loading', value: false });
-          const reader = data.getReader();
-          const decoder = new TextDecoder();
-          let done = false;
-          let isFirst = true;
-          let text = '';
-          while (!done) {
-            if (stopConversationRef.current === true) {
-              controller.abort();
-              done = true;
-              break;
-            }
-            const { value, done: doneReading } = await reader.read();
-            done = doneReading;
-            const chunkValue = decoder.decode(value);
-            text += chunkValue;
-            if (isFirst) {
-              isFirst = false;
-              const updatedMessages: Message[] = [
-                ...updatedConversation.messages,
-                { role: 'assistant', content: chunkValue },
-              ];
-              updatedConversation = {
-                ...updatedConversation,
-                messages: updatedMessages,
-              };
-              homeDispatch({
-                field: 'selectedConversation',
-                value: updatedConversation,
-              });
-            } else {
-              const updatedMessages: Message[] =
-                updatedConversation.messages.map((message, index) => {
-                  if (index === updatedConversation.messages.length - 1) {
-                    return {
-                      ...message,
-                      content: text,
-                    };
-                  }
-                  return message;
-                });
-              updatedConversation = {
-                ...updatedConversation,
-                messages: updatedMessages,
-              };
-              homeDispatch({
-                field: 'selectedConversation',
-                value: updatedConversation,
-              });
-            }
-          }
-          saveConversation(updatedConversation);
-          const updatedConversations: Conversation[] = conversations.map(
-            (conversation) => {
-              if (conversation.id === selectedConversation.id) {
-                return updatedConversation;
-              }
-              return conversation;
-            },
-          );
-          if (updatedConversations.length === 0) {
-            updatedConversations.push(updatedConversation);
-          }
-          homeDispatch({ field: 'conversations', value: updatedConversations });
-          saveConversations(updatedConversations);
-          homeDispatch({ field: 'messageIsStreaming', value: false });
-        } else {
-          const { answer } = await response.json();
-          const updatedMessages: Message[] = [
-            ...updatedConversation.messages,
-            { role: 'assistant', content: answer },
-          ];
+
+        if (updatedConversation.messages?.length === 1) {
+          const { content } = message;
+          const customName =
+            content.length > 30 ? content.substring(0, 30) + '...' : content;
           updatedConversation = {
             ...updatedConversation,
-            messages: updatedMessages,
+            name: customName,
           };
-          homeDispatch({
-            field: 'selectedConversation',
-            value: updateConversation,
-          });
-          saveConversation(updatedConversation);
-          const updatedConversations: Conversation[] = conversations.map(
-            (conversation) => {
-              if (conversation.id === selectedConversation.id) {
-                return updatedConversation;
-              }
-              return conversation;
-            },
-          );
-          if (updatedConversations.length === 0) {
-            updatedConversations.push(updatedConversation);
-          }
-          homeDispatch({ field: 'conversations', value: updatedConversations });
-          saveConversations(updatedConversations);
-          homeDispatch({ field: 'loading', value: false });
-          homeDispatch({ field: 'messageIsStreaming', value: false });
         }
+        homeDispatch({ field: 'loading', value: false });
+        const reader = data.getReader();
+        const decoder = new TextDecoder();
+        let done = false;
+        let isFirst = true;
+        let text = '';
+        while (!done) {
+          if (stopConversationRef.current === true) {
+            controller.abort();
+            done = true;
+            break;
+          }
+          const { value, done: doneReading } = await reader.read();
+          done = doneReading;
+          const chunkValue = decoder.decode(value);
+          text += chunkValue;
+          if (isFirst) {
+            isFirst = false;
+            const updatedMessages: Message[] = [
+              ...updatedConversation.messages,
+              { role: 'assistant', content: chunkValue },
+            ];
+            updatedConversation = {
+              ...updatedConversation,
+              messages: updatedMessages,
+            };
+            homeDispatch({
+              field: 'selectedConversation',
+              value: updatedConversation,
+            });
+          } else {
+            const updatedMessages: Message[] =
+              updatedConversation.messages?.map((message, index) => {
+                if (index === updatedConversation.messages?.length - 1) {
+                  return {
+                    ...message,
+                    content: text,
+                  };
+                }
+                return message;
+              });
+            updatedConversation = {
+              ...updatedConversation,
+              messages: updatedMessages,
+            };
+            homeDispatch({
+              field: 'selectedConversation',
+              value: updatedConversation,
+            });
+          }
+        }
+        saveConversation(updatedConversation);
+        const updatedConversations: Conversation[] = conversations.map(
+          (conversation) => {
+            if (conversation.id === selectedConversation.id) {
+              return updatedConversation;
+            }
+            return conversation;
+          },
+        );
+        if (updatedConversations.length === 0) {
+          updatedConversations.push(updatedConversation);
+        }
+        homeDispatch({ field: 'conversations', value: updatedConversations });
+        saveConversations(updatedConversations);
+        homeDispatch({ field: 'messageIsStreaming', value: false });
+       
       }
       exportData(true);
     },
@@ -320,6 +293,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
   useEffect(() => {
     throttledScrollDown();
     selectedConversation &&
+      selectedConversation.messages &&
       setCurrentMessage(
         selectedConversation.messages[selectedConversation.messages.length - 2],
       );
@@ -372,7 +346,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
             ref={chatContainerRef}
             onScroll={handleScroll}
           >
-            {selectedConversation?.messages.length === 0 ? (
+            {selectedConversation?.messages?.length === 0 ? (
               <>
                 <div className="mx-auto flex flex-col space-y-5 md:space-y-10 px-3 pt-5 md:pt-12 sm:max-w-[600px]">
                   <div className="text-center text-3xl font-semibold text-gray-800 dark:text-gray-100">
@@ -383,10 +357,10 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                     ) : (
                       'CengageGPT'
                     )}
-                      </div>
-                      <div className="font-italic text-center">
-                        CengageGPT is not free like ChatGPT. Please be considerate off your usage.
-                      </div>
+                  </div>
+                  <div className="font-italic text-center">
+                    CengageGPT is not free like ChatGPT. Please be considerate off your usage.
+                  </div>
 
                   {models.length > 0 && (
                     <div className="flex h-full flex-col space-y-4 rounded-lg border border-neutral-200 p-4 dark:border-neutral-600">
@@ -419,7 +393,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
             ) : (
               <>
                 <div className="sticky top-0 z-10 flex justify-center border border-b-neutral-300 bg-neutral-100 py-2 text-sm text-neutral-500 dark:border-none dark:bg-[#444654] dark:text-neutral-200">
-                  {t('Model')}: {selectedConversation?.model.name} | {t('Temp')}
+                  {t('Model')}: {selectedConversation?.model?.name} | {t('Temp')}
                   : {selectedConversation?.temperature} |
                   <button
                     className="ml-2 cursor-pointer hover:opacity-50"
@@ -442,7 +416,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                   </div>
                 )}
 
-                {selectedConversation?.messages.map((message, index) => (
+                {selectedConversation?.messages?.map((message, index) => (
                   <MemoizedChatMessage
                     key={index}
                     message={message}
@@ -452,7 +426,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                       // discard edited message and the ones that come after then resend
                       handleSend(
                         editedMessage,
-                        selectedConversation?.messages.length - index,
+                        selectedConversation?.messages?.length - index,
                       );
                     }}
                   />

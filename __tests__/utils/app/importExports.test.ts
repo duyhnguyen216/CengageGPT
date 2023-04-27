@@ -145,6 +145,7 @@ describe('cleanData Functions', () => {
       expect(obj).toEqual({
         version: 4,
         id: '',
+        username: '',
         history: [
           {
             id: '1',

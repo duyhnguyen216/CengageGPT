@@ -36,7 +36,6 @@ export const OpenAIStream = async (
     const modeID = model.id == OpenAIModelID.GPT_3_5 ? 'GPT35Turbo' : model.id;
     url = `${OPENAI_API_HOST}/openai/deployments/${modeID}/chat/completions?api-version=${OPENAI_API_VERSION}`;
   }
-  console.log('Chat request url: ' + url);
   
   const res = await fetch(url, {
     headers: {

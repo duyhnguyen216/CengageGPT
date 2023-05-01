@@ -38,11 +38,12 @@ export const ModelSelect = () => {
           value={selectedConversation?.model?.id || defaultModelId}
           onChange={handleChange}
         >
-          {models.map((model) => (
+          {models.map((model, index) => (
             <option
               key={model.id}
               value={model.id}
               className="dark:bg-[#343541] dark:text-white"
+              disabled={index === models.length - 1}
             >
               {model.id === defaultModelId
                 ? `Default (${model.name})`

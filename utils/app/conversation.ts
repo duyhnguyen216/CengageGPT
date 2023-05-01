@@ -1,4 +1,5 @@
 import { Conversation } from '@/types/chat';
+import { exportData } from './importExport';
 
 export const updateConversation = (
   updatedConversation: Conversation,
@@ -23,8 +24,10 @@ export const updateConversation = (
 
 export const saveConversation = (conversation: Conversation) => {
   localStorage.setItem('selectedConversation', JSON.stringify(conversation));
+  exportData(true);
 };
 
 export const saveConversations = (conversations: Conversation[]) => {
   localStorage.setItem('conversationHistory', JSON.stringify(conversations));
+  exportData(true);
 };

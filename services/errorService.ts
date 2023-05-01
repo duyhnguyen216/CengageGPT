@@ -19,10 +19,10 @@ const useErrorService = () => {
                 ? [error.statusText]
                 : [
                     t(
-                      'Make sure your OpenAI API key is set in the bottom left of the sidebar.',
+                      'Make sure you are connected the the Internet and is authenticated through Cengage services.',
                     ),
                     t(
-                      'If you completed this step, OpenAI may be experiencing issues.',
+                      'If you completed these steps, CengageGPT may be experiencing issues. Please contact system admin',
                     ),
                   ],
             } as ErrorMessage);

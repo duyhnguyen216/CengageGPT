@@ -40,6 +40,7 @@ import { HomeInitialState, initialState } from './home.state';
 
 import { v4 as uuidv4 } from 'uuid';
 import { PluginKey } from '@/types/plugin';
+import { exportData } from '@/utils/app/importExport';
 
 interface Props {
   serverSideApiKeyIsSet: boolean;
@@ -194,6 +195,7 @@ const Home = ({
       prompt: DEFAULT_SYSTEM_PROMPT,
       temperature: lastConversation?.temperature ?? DEFAULT_TEMPERATURE,
       folderId: null,
+      time: new Date().getTime(),
     };
 
     const updatedConversations = [...conversations, newConversation];
@@ -223,6 +225,7 @@ const Home = ({
 
     dispatch({ field: 'selectedConversation', value: single });
     dispatch({ field: 'conversations', value: all });
+    exportData(true);
   };
 
   // EFFECTS  --------------------------------------------
@@ -270,12 +273,12 @@ const Home = ({
     }
 
 
-    let pluginKeys : PluginKey[] = [];
+    let pluginKeys: PluginKey[] = [];
     const data = localStorage.getItem('pluginKeys');
     if (data) {
-       pluginKeys = JSON.parse(data.toString());
+      pluginKeys = JSON.parse(data.toString());
     }
-    
+
     if (serverSidePluginKeysSet) {
       dispatch({ field: 'pluginKeys', value: [] });
       localStorage.removeItem('pluginKeys');
@@ -366,13 +369,13 @@ const Home = ({
       }}
     >
       <Head>
-        <title>Chatbot UI</title>
+        <title>CengageGPT</title>
         <meta name="description" content="ChatGPT but better." />
         <meta
           name="viewport"
           content="height=device-height ,width=device-width, initial-scale=1, user-scalable=no"
         />
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/ai.png" />
       </Head>
       {selectedConversation && (
         <main

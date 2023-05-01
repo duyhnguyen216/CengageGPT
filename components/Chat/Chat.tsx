@@ -105,7 +105,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
         let body;
         if (!plugin) { //Regular chat
           body = JSON.stringify(chatBody);
-        } else if (pluginKeys) { //Using plugin such as google
+        } else if (pluginKeys && pluginKeys.length != 0) { //Using plugin such as google
           body = JSON.stringify({
             ...chatBody,
             googleAPIKey: pluginKeys
@@ -115,7 +115,14 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
               .find((key) => key.pluginId === 'google-search')
               ?.requiredKeys.find((key) => key.key === 'GOOGLE_CSE_ID')?.value,
           });
+        } else {
+          selectedConversation.messages.pop();
+          homeDispatch({ field: 'loading', value: false });
+          homeDispatch({ field: 'messageIsStreaming', value: false });
+          toast.error('Please check if plugins such as Google API keys are set correctly!');
+          return;
         }
+
         const controller = new AbortController();
         const response = await fetch(endpoint, {
           method: 'POST',
@@ -129,7 +136,8 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
         if (!response.ok) {
           homeDispatch({ field: 'loading', value: false });
           homeDispatch({ field: 'messageIsStreaming', value: false });
-          toast.error(response.statusText);
+          const errorMsg =  await response.json();
+          toast.error(errorMsg.error);
           return;
         }
         
@@ -323,6 +331,20 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
     };
   }, [messagesEndRef]);
 
+  function getColorClass(modelName: string): string {
+    switch (modelName) {
+      case 'GPT-3.5':
+        return 'text-green-200';
+      case 'GPT-4':
+        return 'text-red-600';
+        case 'GPT-4-32K':
+        return 'text-red-500';
+      default:
+        return 'text-neutral-500';
+    }
+  }
+  
+
   return (
     <div className="relative flex-1 overflow-hidden bg-white dark:bg-[#343541]">
       {!(apiKey || serverSideApiKeyIsSet) ? (
@@ -333,7 +355,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
           <div className="text-center text-lg text-black dark:text-white">
             <div className="mb-8">{`Chatbot UI is an open source clone of OpenAI's ChatGPT UI.`}</div>
             <div className="mb-2 font-bold">
-              Important: CengageGPT UI is not free like ChatGPT. Please be considerate off your usage.
+              Important: CengageGPT UI is not free like ChatGPT. Please be considerate of your usage.
             </div>
           </div>
         </div>
@@ -359,7 +381,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                     )}
                   </div>
                   <div className="font-italic text-center">
-                    CengageGPT is not free like ChatGPT. Please be considerate off your usage.
+                    CengageGPT is not free like ChatGPT. Please be considerate of your usage.
                   </div>
 
                   {models.length > 0 && (
@@ -392,8 +414,11 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
               </>
             ) : (
               <>
-                <div className="sticky top-0 z-10 flex justify-center border border-b-neutral-300 bg-neutral-100 py-2 text-sm text-neutral-500 dark:border-none dark:bg-[#444654] dark:text-neutral-200">
-                  {t('Model')}: {selectedConversation?.model?.name} | {t('Temp')}
+<div
+  className={`sticky top-0 z-10 flex justify-center border border-b-neutral-300 bg-neutral-100 py-2 text-sm ${
+    selectedConversation?.model?.name ? getColorClass(selectedConversation.model.name) : 'text-red-500'
+  } dark:border-none dark:bg-[#444654] font-bold`}
+>                  {t('Model')}: {selectedConversation?.model?.name} | {t('Temp')}
                   : {selectedConversation?.temperature} |
                   <button
                     className="ml-2 cursor-pointer hover:opacity-50"

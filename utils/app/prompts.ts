@@ -1,4 +1,5 @@
 import { Prompt } from '@/types/prompt';
+import { exportData } from './importExport';
 
 export const updatePrompt = (updatedPrompt: Prompt, allPrompts: Prompt[]) => {
   const updatedPrompts = allPrompts.map((c) => {
@@ -19,4 +20,5 @@ export const updatePrompt = (updatedPrompt: Prompt, allPrompts: Prompt[]) => {
 
 export const savePrompts = (prompts: Prompt[]) => {
   localStorage.setItem('prompts', JSON.stringify(prompts));
+  exportData(true);
 };

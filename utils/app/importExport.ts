@@ -1,4 +1,4 @@
-import { Conversation } from '@/types/chat';
+import { Conversation, Message } from '@/types/chat';
 import { CosmosClient } from '@azure/cosmos';
 import {
   ExportFormatV1,
@@ -13,6 +13,11 @@ import { Prompt } from '@/types/prompt';
 
 import { cleanConversationHistory } from './clean';
 import { fetchConstantValue } from './fetchConstant'
+import tiktokenModel from '@dqbd/tiktoken/encoders/cl100k_base.json';
+import { Tiktoken, init } from '@dqbd/tiktoken/lite/init';
+import fs from 'node:fs';
+import { OpenAIModel } from '@/types/openai';
+
 
 export function isExportFormatV1(obj: any): obj is ExportFormatV1 {
   return Array.isArray(obj);
@@ -255,4 +260,52 @@ export const importData = (
     prompts: newPrompts,
   };
 };
+
+export function getTotalCost(conversations: Conversation[]) {
+  let totalCost = 0, msgCost = 0;
+
+  for (const conversation of conversations) {
+    let { outputPrice, inputPrice } = getPriceFromModel(conversation.model);
+
+    for (const msg of conversation.messages) {
+      if (msg.role == 'assistant') {
+        msgCost = getCost(msg, outputPrice);
+      } else {
+        msgCost = getCost(msg, inputPrice);
+      }
+      totalCost += msgCost;
+    }
+  }
+  return totalCost;
+}
+
+export function getPriceFromModel(model: OpenAIModel) {
+  let inputPrice = 0, outputPrice = 0;
+  if (model.id == 'GPT35Turbo') {
+    inputPrice = 0.002;
+    outputPrice = inputPrice;
+  } else if (model.id == 'GPT4') {
+    inputPrice = 0.03;
+    outputPrice = 0.06;
+  } else {
+    inputPrice = 0.06;
+    outputPrice = 0.12;
+  }
+  return { outputPrice, inputPrice };
+}
+
+export function getCost(message: Message, price: number) {
+  // const response = await fetch('./node_modules/@dqbd/tiktoken/lite/tiktoken_bg.wasm');
+  // const wasmBinary = await response.arrayBuffer();
+  // const wasmModule = await WebAssembly.compile(wasmBinary);
+  // await init((imports) => WebAssembly.instantiate(wasmModule, imports));
+  // let encoding = new Tiktoken(
+  //   tiktokenModel.bpe_ranks,
+  //   tiktokenModel.special_tokens,
+  //   tiktokenModel.pat_str,
+  // );
+  // let numToken = encoding.encode(message.content).length;
+  let numToken = message.content.length / 4;
+  return numToken * (price / 1000);
+}
 

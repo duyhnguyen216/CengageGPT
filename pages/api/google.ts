@@ -13,7 +13,7 @@ import { OpenAIModelID } from '@/types/openai';
 import tiktokenModel from '@dqbd/tiktoken/encoders/cl100k_base.json';
 import { Tiktoken, init } from '@dqbd/tiktoken/lite/init';
 import fs from 'node:fs';
-import toast from 'react-hot-toast';
+import { getCost, getPriceFromModel } from '@/utils/app/importExport';
 
 const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
   let encoding: Tiktoken | null = null;
@@ -178,6 +178,13 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
 
     const { choices: choices2 } = await answerRes.json();
     const answer = choices2[0].message.content;
+
+    //Estimate cost
+    let currentUsage = sessionStorage.getItem('CURRENT_USAGE') ? Number(sessionStorage.getItem('CURRENT_USAGE')) : 0;
+    const {inputPrice, outputPrice} = getPriceFromModel(model);
+    currentUsage += await getCost(answerMessage, inputPrice);
+    currentUsage += await getCost(answer, outputPrice);
+    sessionStorage.setItem('CURRENT_USAGE', currentUsage.toString());
 
     res.status(200).send(answer);
   } catch (error) {

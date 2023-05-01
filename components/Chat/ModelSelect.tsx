@@ -6,6 +6,8 @@ import { useTranslation } from 'next-i18next';
 import { OpenAIModel } from '@/types/openai';
 
 import HomeContext from '@/pages/api/home/home.context';
+import { Conversation } from '@/types/chat';
+import { getTotalCost } from '@/utils/app/importExport';
 
 export const ModelSelect = () => {
   const { t } = useTranslation('chat');
@@ -53,15 +55,19 @@ export const ModelSelect = () => {
         </select>
       </div>
       <div className="w-full mt-3 text-left text-neutral-700 dark:text-neutral-400 flex items-center">
-        <a
-          href="https://platform.openai.com/account/usage"
-          target="_blank"
-          className="flex items-center"
-        >
-          <IconExternalLink size={18} className={'inline mr-1'} />
-          {t('View Account Usage')}
-        </a>
+        {`Account Usage: $${(getTotalCost(getConversations()) || 0).toFixed(5)}`}
+      </div>
+      <div className="w-full mt-3 text-left text-neutral-700 dark:text-neutral-400 flex items-center">
+        {`Session Usage: $${(sessionStorage.getItem('CURRENT_USAGE') || '0').replace(/(\.\d{1,5})\d*/, "$1")}`}
       </div>
     </div>
   );
 };
+
+function getConversations() {
+  let history = localStorage.getItem('conversationHistory');
+  if (history) {
+    return JSON.parse(history) as Conversation[];
+  }
+  return [] as Conversation[];
+}

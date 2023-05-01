@@ -34,6 +34,7 @@ import { SystemPrompt } from './SystemPrompt';
 import { TemperatureSlider } from './Temperature';
 import { MemoizedChatMessage } from './MemoizedChatMessage';
 import { exportData } from '@/utils/app/importExport';
+import { getCost, getPriceFromModel } from '@/utils/app/importExport';
 
 interface Props {
   stopConversationRef: MutableRefObject<boolean>;
@@ -136,13 +137,13 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
         if (!response.ok) {
           homeDispatch({ field: 'loading', value: false });
           homeDispatch({ field: 'messageIsStreaming', value: false });
-          const errorMsg =  await response.json();
+          const errorMsg = await response.json();
           toast.error(errorMsg.error);
           return;
         }
-        
+
         const data = response.body;
-        
+
         if (!data) {
           homeDispatch({ field: 'loading', value: false });
           homeDispatch({ field: 'messageIsStreaming', value: false });
@@ -222,9 +223,19 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
           updatedConversations.push(updatedConversation);
         }
         homeDispatch({ field: 'conversations', value: updatedConversations });
+
+        //Estimate cost
+        if (!plugin) {
+          let currentUsage = sessionStorage.getItem('CURRENT_USAGE') ? Number(sessionStorage.getItem('CURRENT_USAGE')) : 0;
+          const { inputPrice, outputPrice } = getPriceFromModel(updatedConversation.model);
+          const length = updatedConversation.messages.length;
+          currentUsage += await getCost(updatedConversation.messages[length - 1], inputPrice);
+          currentUsage += await getCost(updatedConversation.messages[length - 2], outputPrice);
+          sessionStorage.setItem('CURRENT_USAGE', currentUsage.toString());
+        }
         saveConversations(updatedConversations);
         homeDispatch({ field: 'messageIsStreaming', value: false });
-       
+
       }
       exportData(true);
     },
@@ -337,13 +348,13 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
         return 'text-green-200';
       case 'GPT-4':
         return 'text-red-600';
-        case 'GPT-4-32K':
+      case 'GPT-4-32K':
         return 'text-red-500';
       default:
         return 'text-neutral-500';
     }
   }
-  
+
 
   return (
     <div className="relative flex-1 overflow-hidden bg-white dark:bg-[#343541]">
@@ -414,11 +425,10 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
               </>
             ) : (
               <>
-<div
-  className={`sticky top-0 z-10 flex justify-center border border-b-neutral-300 bg-neutral-100 py-2 text-sm ${
-    selectedConversation?.model?.name ? getColorClass(selectedConversation.model.name) : 'text-red-500'
-  } dark:border-none dark:bg-[#444654] font-bold`}
->                  {t('Model')}: {selectedConversation?.model?.name} | {t('Temp')}
+                <div
+                  className={`sticky top-0 z-10 flex justify-center border border-b-neutral-300 bg-neutral-100 py-2 text-sm ${selectedConversation?.model?.name ? getColorClass(selectedConversation.model.name) : 'text-red-500'
+                    } dark:border-none dark:bg-[#444654] font-bold`}
+                >                  {t('Model')}: {selectedConversation?.model?.name} | {t('Temp')}
                   : {selectedConversation?.temperature} |
                   <button
                     className="ml-2 cursor-pointer hover:opacity-50"

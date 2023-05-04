@@ -52,6 +52,7 @@ const Promptbar = () => {
         content: '',
         model: OpenAIModels[defaultModelId],
         folderId: null,
+        time: new Date().getTime(),
       };
 
       const updatedPrompts = [...prompts, newPrompt];

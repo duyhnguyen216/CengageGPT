@@ -10,6 +10,17 @@ import { SidebarButton } from '@/components/Sidebar/SidebarButton';
 
 import ChatbarContext from '../Chatbar.context';
 
+function clearGoogleApiKey() {
+  if (document) {
+    if (document.getElementById('googleCSE')) {
+      (document.getElementById('googleCSE') as HTMLInputElement).value = ''
+    }
+    if (document.getElementById('googleAPI')) {
+      (document.getElementById('googleAPI') as HTMLInputElement).value = ''
+    }
+  }
+}
+
 export const PluginKeys = () => {
   const { t } = useTranslation('sidebar');
 
@@ -90,6 +101,7 @@ export const PluginKeys = () => {
                   <input
                     className="mt-2 w-full rounded-lg border border-neutral-500 px-4 py-2 text-neutral-900 shadow focus:outline-none dark:border-neutral-800 dark:border-opacity-50 dark:bg-[#40414F] dark:text-neutral-100"
                     type="password"
+                    id="googleAPI"
                     value={
                       pluginKeys
                         .find((p) => p.pluginId === PluginID.GOOGLE_SEARCH)
@@ -149,6 +161,7 @@ export const PluginKeys = () => {
                   <input
                     className="mt-2 w-full rounded-lg border border-neutral-500 px-4 py-2 text-neutral-900 shadow focus:outline-none dark:border-neutral-800 dark:border-opacity-50 dark:bg-[#40414F] dark:text-neutral-100"
                     type="password"
+                    id="googleCSE"
                     value={
                       pluginKeys
                         .find((p) => p.pluginId === PluginID.GOOGLE_SEARCH)
@@ -210,6 +223,7 @@ export const PluginKeys = () => {
                       );
 
                       if (pluginKey) {
+                        clearGoogleApiKey();
                         handleClearPluginKey(pluginKey);
                       }
                     }}

@@ -21,7 +21,7 @@ import {
 import { throttle } from '@/utils/data/throttle';
 
 import { ChatBody, Conversation, Message } from '@/types/chat';
-import { Plugin, PluginKey } from '@/types/plugin';
+import { Plugin } from '@/types/plugin';
 
 import HomeContext from '@/pages/api/home/home.context';
 
@@ -37,9 +37,12 @@ import { exportData } from '@/utils/app/importExport';
 
 interface Props {
   stopConversationRef: MutableRefObject<boolean>;
+  accountCost: number;
+  conversations: Conversation[]
 }
 
-export const Chat = memo(({ stopConversationRef }: Props) => {
+
+export const Chat = memo(({ stopConversationRef, accountCost }: Props) => {
   const { t } = useTranslation('chat');
 
   const {
@@ -103,9 +106,9 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
         };
         const endpoint = getEndpoint(plugin);
         let body;
-        if (!plugin) { //Regular chat
+        if (!plugin) {
           body = JSON.stringify(chatBody);
-        } else if (pluginKeys) { //Using plugin such as google
+        } else if (pluginKeys && pluginKeys.length != 0) { //Using plugin such as google
           body = JSON.stringify({
             ...chatBody,
             googleAPIKey: pluginKeys
@@ -115,13 +118,19 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
               .find((key) => key.pluginId === 'google-search')
               ?.requiredKeys.find((key) => key.key === 'GOOGLE_CSE_ID')?.value,
           });
+        } else {
+          selectedConversation.messages.pop();
+          homeDispatch({ field: 'loading', value: false });
+          homeDispatch({ field: 'messageIsStreaming', value: false });
+          toast.error('Please check if plugins such as Google API keys are set correctly!');
+          return;
         }
+
         const controller = new AbortController();
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'plugin': pluginKeys.toString(),
           },
           signal: controller.signal,
           body,
@@ -129,12 +138,11 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
         if (!response.ok) {
           homeDispatch({ field: 'loading', value: false });
           homeDispatch({ field: 'messageIsStreaming', value: false });
-          toast.error(response.statusText);
+          const errorMsg = await response.json();
+          toast.error(errorMsg.error);
           return;
         }
-        
         const data = response.body;
-        
         if (!data) {
           homeDispatch({ field: 'loading', value: false });
           homeDispatch({ field: 'messageIsStreaming', value: false });
@@ -216,7 +224,6 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
         homeDispatch({ field: 'conversations', value: updatedConversations });
         saveConversations(updatedConversations);
         homeDispatch({ field: 'messageIsStreaming', value: false });
-       
       }
       exportData(true);
     },
@@ -293,7 +300,6 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
   useEffect(() => {
     throttledScrollDown();
     selectedConversation &&
-      selectedConversation.messages &&
       setCurrentMessage(
         selectedConversation.messages[selectedConversation.messages.length - 2],
       );
@@ -323,6 +329,21 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
     };
   }, [messagesEndRef]);
 
+
+  //setting background color depending on the Model name user clicks
+  let bgColor;
+  if (selectedConversation?.model.name === 'GPT-3.5') {
+    bgColor = 'mediumaquamarine';
+  }
+  else if (selectedConversation?.model.name === 'GPT-4') {
+    bgColor = '#B3CAC6'
+  }
+  else {
+    bgColor = '#F2F1EB'
+  }
+
+  // console.log("selected Conversation model", selectedConversation, selectedConversation?.model.name)
+
   return (
     <div className="relative flex-1 overflow-hidden bg-white dark:bg-[#343541]">
       {!(apiKey || serverSideApiKeyIsSet) ? (
@@ -333,7 +354,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
           <div className="text-center text-lg text-black dark:text-white">
             <div className="mb-8">{`Chatbot UI is an open source clone of OpenAI's ChatGPT UI.`}</div>
             <div className="mb-2 font-bold">
-              Important: CengageGPT UI is not free like ChatGPT. Please be considerate off your usage.
+              Important: CengageGPT UI is not free like ChatGPT. Please be considerate of your usage.
             </div>
           </div>
         </div>
@@ -346,7 +367,26 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
             ref={chatContainerRef}
             onScroll={handleScroll}
           >
-            {selectedConversation?.messages?.length === 0 ? (
+
+            <div className="sticky top-0 z-10 flex justify-center border border-b-neutral-300 bg-neutral-100 py-2 text-sm text-neutral-500 dark:border-none dark:bg-[#444654] dark:text-neutral-200"
+              style={{ backgroundColor: bgColor, color: "#044D41" }}>
+              {t('Model')}: {selectedConversation?.model.name} | {t('Temp')}
+              : {selectedConversation?.temperature} |
+              <button
+                className="ml-2 cursor-pointer hover:opacity-50"
+                onClick={handleSettings}
+              >
+                <IconSettings size={18} />
+              </button>
+              <button
+                className="ml-2 cursor-pointer hover:opacity-50"
+                onClick={onClearAll}
+              >
+                <IconClearAll size={18} />
+              </button>
+            </div>
+
+            {selectedConversation?.messages.length === 0 ? (
               <>
                 <div className="mx-auto flex flex-col space-y-5 md:space-y-10 px-3 pt-5 md:pt-12 sm:max-w-[600px]">
                   <div className="text-center text-3xl font-semibold text-gray-800 dark:text-gray-100">
@@ -359,12 +399,12 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                     )}
                   </div>
                   <div className="font-italic text-center">
-                    CengageGPT is not free like ChatGPT. Please be considerate off your usage.
+                    CengageGPT is not free like ChatGPT. Please be considerate of your usage.
                   </div>
 
                   {models.length > 0 && (
                     <div className="flex h-full flex-col space-y-4 rounded-lg border border-neutral-200 p-4 dark:border-neutral-600">
-                      <ModelSelect />
+                      <ModelSelect conversations={conversations} accountCost={accountCost} />
 
                       <SystemPrompt
                         conversation={selectedConversation}
@@ -392,8 +432,9 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
               </>
             ) : (
               <>
-                <div className="sticky top-0 z-10 flex justify-center border border-b-neutral-300 bg-neutral-100 py-2 text-sm text-neutral-500 dark:border-none dark:bg-[#444654] dark:text-neutral-200">
-                  {t('Model')}: {selectedConversation?.model?.name} | {t('Temp')}
+                {/* <div className="sticky top-0 z-10 flex justify-center border border-b-neutral-300 bg-neutral-100 py-2 text-sm text-neutral-500 dark:border-none dark:bg-[#444654] dark:text-neutral-200"
+                style={{backgroundColor:bgColor, color:"#044D41"}}>
+                  {t('Model')}: {selectedConversation?.model.name} | {t('Temp')}
                   : {selectedConversation?.temperature} |
                   <button
                     className="ml-2 cursor-pointer hover:opacity-50"
@@ -407,16 +448,16 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                   >
                     <IconClearAll size={18} />
                   </button>
-                </div>
+                </div> */}
                 {showSettings && (
                   <div className="flex flex-col space-y-10 md:mx-auto md:max-w-xl md:gap-6 md:py-3 md:pt-6 lg:max-w-2xl lg:px-0 xl:max-w-3xl">
                     <div className="flex h-full flex-col space-y-4 border-b border-neutral-200 p-4 dark:border-neutral-600 md:rounded-lg md:border">
-                      <ModelSelect />
+                      <ModelSelect conversations={conversations} accountCost={accountCost} />
                     </div>
                   </div>
                 )}
 
-                {selectedConversation?.messages?.map((message, index) => (
+                {selectedConversation?.messages.map((message, index) => (
                   <MemoizedChatMessage
                     key={index}
                     message={message}
@@ -426,7 +467,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                       // discard edited message and the ones that come after then resend
                       handleSend(
                         editedMessage,
-                        selectedConversation?.messages?.length - index,
+                        selectedConversation?.messages.length - index,
                       );
                     }}
                   />

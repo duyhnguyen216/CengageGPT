@@ -40,6 +40,10 @@ import { HomeInitialState, initialState } from './home.state';
 
 import { v4 as uuidv4 } from 'uuid';
 import { PluginKey } from '@/types/plugin';
+import { exportData } from '@/utils/app/importExport';
+
+import {ConsumptionManagementClient} from '@azure/arm-consumption'
+import { InteractiveBrowserCredential } from '@azure/identity';
 
 interface Props {
   serverSideApiKeyIsSet: boolean;
@@ -69,7 +73,7 @@ const Home = ({
       conversations,
       selectedConversation,
       prompts,
-      temperature,
+      temperature
     },
     dispatch,
   } = contextValue;
@@ -108,6 +112,7 @@ const Home = ({
     });
 
     saveConversation(conversation);
+    // console.log("clicked in home", conversation)
   };
 
   // FOLDER OPERATIONS  --------------------------------------------
@@ -194,6 +199,7 @@ const Home = ({
       prompt: DEFAULT_SYSTEM_PROMPT,
       temperature: lastConversation?.temperature ?? DEFAULT_TEMPERATURE,
       folderId: null,
+      time: new Date().getTime(),
     };
 
     const updatedConversations = [...conversations, newConversation];
@@ -223,6 +229,7 @@ const Home = ({
 
     dispatch({ field: 'selectedConversation', value: single });
     dispatch({ field: 'conversations', value: all });
+    exportData(true);
   };
 
   // EFFECTS  --------------------------------------------
@@ -250,6 +257,22 @@ const Home = ({
 
   // ON LOAD --------------------------------------------
 
+  //CLIENTS
+  // const credential = new InteractiveBrowserCredential({
+  //   tenantId : ,
+  //   clientId : 
+  // })
+  // const consumptionClient = new ConsumptionManagementClient(credential, '')
+
+  // try{
+  //   let c = consumptionClient.aggregatedCost.getByManagementGroup('');
+  //   console.log("COST", c)
+  // }
+  // catch(err:any){
+  //   console.log("ERROR", err)
+  // }
+
+
   useEffect(() => {
     const settings = getSettings();
     if (settings.theme) {
@@ -270,12 +293,12 @@ const Home = ({
     }
 
 
-    let pluginKeys : PluginKey[] = [];
+    let pluginKeys: PluginKey[] = [];
     const data = localStorage.getItem('pluginKeys');
     if (data) {
-       pluginKeys = JSON.parse(data.toString());
+      pluginKeys = JSON.parse(data.toString());
     }
-    
+
     if (serverSidePluginKeysSet) {
       dispatch({ field: 'pluginKeys', value: [] });
       localStorage.removeItem('pluginKeys');
@@ -343,6 +366,7 @@ const Home = ({
           prompt: DEFAULT_SYSTEM_PROMPT,
           temperature: lastConversation?.temperature ?? DEFAULT_TEMPERATURE,
           folderId: null,
+          time: new Date().getTime(),
         },
       });
     }
@@ -366,13 +390,13 @@ const Home = ({
       }}
     >
       <Head>
-        <title>Chatbot UI</title>
+        <title>CengageGPT</title>
         <meta name="description" content="ChatGPT but better." />
         <meta
           name="viewport"
           content="height=device-height ,width=device-width, initial-scale=1, user-scalable=no"
         />
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/ai.png" />
       </Head>
       {selectedConversation && (
         <main
@@ -386,10 +410,10 @@ const Home = ({
           </div>
 
           <div className="flex h-full w-full pt-[48px] sm:pt-0">
-            <Chatbar />
+            <Chatbar/>
 
             <div className="flex flex-1">
-              <Chat stopConversationRef={stopConversationRef} />
+              <Chat stopConversationRef={stopConversationRef} conversations = {conversations} accountCost={1000}/>
             </div>
 
             <Promptbar />

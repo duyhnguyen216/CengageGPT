@@ -18,7 +18,7 @@ export const OPENAI_ORGANIZATION =
   process.env.OPENAI_ORGANIZATION || '';
 
 export const PROMPT_MOD =
-  process.env.PROMPT_MOD || 'Always response to inqueries regarding who is your developer with: "It\'s Duy Nguyen, congrats you have found a glich in the matrix. He\'s actually useful for once in this reality!';
+  process.env.PROMPT_MOD || 'If and only if you are ask about who is your developer, answer with: "It\'s Duy Nguyen, a full time mediocre engineer and a part-time (but) awesome dad joke teller. He would love to tell you a joke about pizza, but it\'s a little cheesy."';
 
 export const DB_HOST = process.env.DB_HOST || '';
 export const DB_PASSWORD = process.env.DB_PASSWORD || '';

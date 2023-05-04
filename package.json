@@ -12,7 +12,9 @@
     "coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@azure/arm-consumption": "^9.2.0",
     "@azure/cosmos": "^3.17.3",
+    "@azure/identity": "^3.1.4",
     "@dqbd/tiktoken": "^1.0.2",
     "@tabler/icons-react": "^2.9.0",
     "eventsource-parser": "^0.1.0",

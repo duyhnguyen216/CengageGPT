@@ -109,10 +109,15 @@ export const OpenAIStream = async (
       };
 
       const parser = createParser(onParse);
-
+      let lastChunk;
       for await (const chunk of res.body as any) {
+        lastChunk = chunk;
         parser.feed(decoder.decode(chunk));
       }
+      // TODO: Invest OPENAI BUG finish reason should be populated, 
+      // but never in stream mode this is a work around
+      lastChunk.choices[0].finish_reason = "DONE";
+      parser.feed(decoder.decode(lastChunk));
     },
   });
 

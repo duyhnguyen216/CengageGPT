@@ -165,14 +165,23 @@ export const Chat = memo(({ stopConversationRef, accountCost }: Props) => {
         let isFirst = true;
         let text = '';
         while (!done) {
+          console.log("DN starting a read/stream cycle");
           if (stopConversationRef.current === true) {
             controller.abort();
             done = true;
             break;
           }
+          console.log("DN about to parse reader");
           const { value, done: doneReading } = await reader.read();
+          console.log("DN done parsing");
           done = doneReading;
           const chunkValue = decoder.decode(value);
+          console.log("DN done decode");
+          console.log("DN chunk length:" + chunkValue.length);
+          if (chunkValue.length == 0) {
+            done = true;
+          }
+
           text += chunkValue;
           if (isFirst) {
             isFirst = false;
@@ -199,14 +208,17 @@ export const Chat = memo(({ stopConversationRef, accountCost }: Props) => {
                 }
                 return message;
               });
+              console.log("DN done upload mesg object");
             updatedConversation = {
               ...updatedConversation,
               messages: updatedMessages,
             };
+            console.log("DN done upload conversation")
             homeDispatch({
               field: 'selectedConversation',
               value: updatedConversation,
             });
+            console.log("DN dispatching event");
           }
         }
         saveConversation(updatedConversation);

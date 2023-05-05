@@ -95,7 +95,7 @@ export async function getUserInfo() {
   }
 }
 
-export const exportData = async (writeToDatabase = false) => {
+export const exportData = async (writeToDatabase = false, downloadData = false) => {
   let history = localStorage.getItem('conversationHistory');
   let folders = localStorage.getItem('folders');
   let prompts = localStorage.getItem('prompts');
@@ -182,20 +182,24 @@ export const exportData = async (writeToDatabase = false) => {
       }
     }
   }
+  if (downloadData) {
+    let exportData = {...data};
+    exportData.id = '';
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = `CengageGPT_${exportData.username}_history_${currentDate()}.json`;
+    link.href = url;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
 
   return JSON.stringify(data);
-  // const blob = new Blob([JSON.stringify(data, null, 2)], {
-  //   type: 'application/json',
-  // });
-  // const url = URL.createObjectURL(blob);
-  // const link = document.createElement('a');
-  // link.download = `chatbot_ui_history_${currentDate()}.json`;
-  // link.href = url;
-  // link.style.display = 'none';
-  // document.body.appendChild(link);
-  // link.click();
-  // document.body.removeChild(link);
-  // URL.revokeObjectURL(url);
 };
 
 

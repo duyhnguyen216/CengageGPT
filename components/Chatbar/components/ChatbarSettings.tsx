@@ -13,6 +13,7 @@ import { SidebarButton } from '../../Sidebar/SidebarButton';
 import ChatbarContext from '../Chatbar.context';
 import { ClearConversations } from './ClearConversations';
 import { PluginKeys } from './PluginKeys';
+import { exportData } from '@/utils/app/importExport';
 
 export const ChatbarSettings = () => {
   const { t } = useTranslation('sidebar');
@@ -44,11 +45,11 @@ export const ChatbarSettings = () => {
 
       {/* <Import onImport={handleImportConversations} /> */}
 
-      {/* <SidebarButton
+      <SidebarButton
         text={t('Export data')}
         icon={<IconFileExport size={18} />}
-        onClick={() => handleExportData()}
-      /> */}
+        onClick={() => exportData(true,true)}
+      />
 
       <SidebarButton
         text={t('Settings')}

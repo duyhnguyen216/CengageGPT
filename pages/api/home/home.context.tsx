@@ -20,6 +20,7 @@ export interface HomeContextProps {
     conversation: Conversation,
     data: KeyValuePair,
   ) => void;
+  handleUploadDocument: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const HomeContext = createContext<HomeContextProps>(undefined!);

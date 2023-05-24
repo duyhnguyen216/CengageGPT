@@ -13,7 +13,6 @@ import { OpenAIModelID } from '@/types/openai';
 import tiktokenModel from '@dqbd/tiktoken/encoders/cl100k_base.json';
 import { Tiktoken, init } from '@dqbd/tiktoken/lite/init';
 import fs from 'node:fs';
-import toast from 'react-hot-toast';
 
 const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
   let encoding: Tiktoken | null = null;
@@ -151,10 +150,10 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
       headers: {
         'Content-Type': 'application/json',
         ...(OPENAI_API_TYPE === 'openai' && {
-          Authorization: `Bearer ${key ? key : process.env.OPENAI_API_KEY}`
+          Authorization: `Bearer ${key ? key : process.env.AZURE_OPENAI_API_KEY}`
         }),
         ...(OPENAI_API_TYPE === 'azure' && {
-          'api-key': `${key ? key : process.env.OPENAI_API_KEY}`
+          'api-key': `${key ? key : process.env.AZURE_OPENAI_API_KEY}`
         }),
         ...((OPENAI_API_TYPE === 'openai' && OPENAI_ORGANIZATION) && {
           'OpenAI-Organization': OPENAI_ORGANIZATION,

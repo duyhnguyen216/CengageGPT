@@ -366,7 +366,7 @@ export const Chat = memo(({ stopConversationRef, accountCost }: Props) => {
           <div className="text-center text-lg text-black dark:text-white">
             <div className="mb-8">{`Chatbot UI is an open source clone of OpenAI's ChatGPT UI.`}</div>
             <div className="mb-2 font-bold">
-              Important: CengageGPT UI is not free like ChatGPT. Please be considerate of your usage.
+              Important: CengageGPT UI is not free like ChatGPT. Please be considerate of your usage. Employees should not use Cengage GPT to generate content for commercial products, or enter personal information/data.
             </div>
           </div>
         </div>
@@ -411,7 +411,7 @@ export const Chat = memo(({ stopConversationRef, accountCost }: Props) => {
                     )}
                   </div>
                   <div className="font-italic text-center">
-                    CengageGPT is not free like ChatGPT. Please be considerate of your usage.
+                    CengageGPT is not free like ChatGPT. Please be considerate of your usage. Employees should not use Cengage GPT to generate content for commercial products, or enter personal information/data.
                   </div>
 
                   {models.length > 0 && (

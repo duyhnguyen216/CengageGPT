@@ -19,7 +19,7 @@ const useErrorService = () => {
                 ? [error.statusText]
                 : [
                     t(
-                      'Make sure you are connected the the Internet and is authenticated through Cengage services.',
+                      'Make sure you are connected the the Internet and is authenticated through Cengage services, then try refreshing the page',
                     ),
                     t(
                       'If you completed these steps, CengageGPT may be experiencing issues. Please contact system admin',

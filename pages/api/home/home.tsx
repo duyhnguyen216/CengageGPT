@@ -30,6 +30,9 @@ import { KeyValuePair } from '@/types/data';
 import { FolderInterface, FolderType } from '@/types/folder';
 import { OpenAIModelID, OpenAIModels, fallbackModelID } from '@/types/openai';
 import { Prompt } from '@/types/prompt';
+import { TokenTextSplitter } from "langchain/text_splitter";
+import { Document } from "langchain/document";
+// import { DocxLoader } from "langchain/document_loaders/fs/docx";
 
 import { Chat } from '@/components/Chat/Chat';
 import { Chatbar } from '@/components/Chatbar/Chatbar';
@@ -42,7 +45,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { PluginKey } from '@/types/plugin';
 import { exportData } from '@/utils/app/importExport';
 
-import {ConsumptionManagementClient} from '@azure/arm-consumption'
+import { ConsumptionManagementClient } from '@azure/arm-consumption'
 import { InteractiveBrowserCredential } from '@azure/identity';
 
 interface Props {
@@ -232,6 +235,36 @@ const Home = ({
     exportData(true);
   };
 
+  const handleUploadDocument = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const maxTotalFileSize = 100 * 1024 * 1024; // 100 MB
+
+    // Calculate the total size of all uploaded files
+    const totalFileSize = Array.from(e.target.files || []).reduce(
+      (accumulator: number, file: File) => accumulator + file.size,
+      0
+    );
+
+    // Check if the total file size exceeds the limit
+    if (totalFileSize > maxTotalFileSize) {
+      alert(`Total file size must be less than ${maxTotalFileSize / (1024 * 1024)} MB.`);
+      return;
+    }
+    let docs: Document[] = [];
+    const splitter = new TokenTextSplitter({
+      encodingName: "gpt2",
+      chunkSize: 1000,
+      chunkOverlap: 100,
+    });
+    // Process each uploaded file
+    // for (const file of Array.from(e.target.files || [])) {
+    //   const loader = new DocxLoader(file);
+    //   const output = await loader.loadAndSplit(splitter);
+    //   docs.push(...output);
+    // }
+
+    //dispatch({ field: 'docs', value: docs });
+  };
+
   // EFFECTS  --------------------------------------------
 
   useEffect(() => {
@@ -387,6 +420,7 @@ const Home = ({
         handleUpdateFolder,
         handleSelectConversation,
         handleUpdateConversation,
+        handleUploadDocument,
       }}
     >
       <Head>
@@ -410,10 +444,10 @@ const Home = ({
           </div>
 
           <div className="flex h-full w-full pt-[48px] sm:pt-0">
-            <Chatbar/>
+            <Chatbar />
 
             <div className="flex flex-1">
-              <Chat stopConversationRef={stopConversationRef} conversations = {conversations} accountCost={1000}/>
+              <Chat stopConversationRef={stopConversationRef} conversations={conversations} accountCost={1000} />
             </div>
 
             <Promptbar />
@@ -445,7 +479,7 @@ export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
 
   return {
     props: {
-      serverSideApiKeyIsSet: !!process.env.OPENAI_API_KEY,
+      serverSideApiKeyIsSet: !!process.env.AZURE_OPENAI_API_KEY,
       defaultModelId,
       serverSidePluginKeysSet,
       ...(await serverSideTranslations(locale ?? 'en', [

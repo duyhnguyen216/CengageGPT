@@ -13,10 +13,12 @@ export interface PluginKey {
 
 export enum PluginID {
   GOOGLE_SEARCH = 'google-search',
+  DOC_CHAT = 'doc-chat',
 }
 
 export enum PluginName {
   GOOGLE_SEARCH = 'Google Search',
+  DOC_CHAT = 'Doc Chat',
 }
 
 export const Plugins: Record<PluginID, Plugin> = {
@@ -34,6 +36,13 @@ export const Plugins: Record<PluginID, Plugin> = {
       },
     ],
   },
+  [PluginID.DOC_CHAT]: {
+    id: PluginID.DOC_CHAT,
+    name: PluginName.DOC_CHAT,
+    requiredKeys: [
+
+    ],
+  }
 };
 
 export const PluginList = Object.values(Plugins);

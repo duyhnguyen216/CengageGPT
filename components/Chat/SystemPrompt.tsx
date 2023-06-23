@@ -202,9 +202,9 @@ export const SystemPrompt: FC<Props> = ({
         style={{
           resize: 'none',
           bottom: `${textareaRef?.current?.scrollHeight}px`,
-          maxHeight: '300px',
+          maxHeight: '150px',
           overflow: `${
-            textareaRef.current && textareaRef.current.scrollHeight > 400
+            textareaRef.current && textareaRef.current.scrollHeight > 200
               ? 'auto'
               : 'hidden'
           }`,

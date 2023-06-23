@@ -2,11 +2,14 @@ import {
   IconArrowDown,
   IconBolt,
   IconBrandGoogle,
+  IconFileDatabase,
   IconPlayerStop,
   IconRepeat,
   IconSend,
+  IconUpload,
 } from '@tabler/icons-react';
 import {
+  ChangeEvent,
   KeyboardEvent,
   MutableRefObject,
   useCallback,
@@ -15,11 +18,12 @@ import {
   useRef,
   useState,
 } from 'react';
+import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
 import { Message } from '@/types/chat';
-import { Plugin } from '@/types/plugin';
+import { Plugin, PluginID } from '@/types/plugin';
 import { Prompt } from '@/types/prompt';
 
 import HomeContext from '@/pages/api/home/home.context';
@@ -49,7 +53,7 @@ export const ChatInput = ({
 
   const {
     state: { selectedConversation, messageIsStreaming, prompts },
-
+    handleUploadDocument,
     dispatch: homeDispatch,
   } = useContext(HomeContext);
 
@@ -279,14 +283,32 @@ export const ChatInput = ({
             </button>
           )}
 
-        <div className="relative mx-2 flex w-full flex-grow flex-col rounded-md border border-black/10 bg-white shadow-[0_0_10px_rgba(0,0,0,0.10)] dark:border-gray-900/50 dark:bg-[#40414F] dark:text-white dark:shadow-[0_0_15px_rgba(0,0,0,0.10)] sm:mx-4">
-          <button
-            className="absolute left-2 top-2 rounded-sm p-1 text-neutral-800 opacity-60 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-opacity-50 dark:text-neutral-100 dark:hover:text-neutral-200"
-            onClick={() => setShowPluginSelect(!showPluginSelect)}
-            onKeyDown={(e) => {}}
-          >
-            {plugin ? <IconBrandGoogle size={20} /> : <IconBolt size={20} />}
-          </button>
+<div className="relative mx-2 flex w-full flex-grow flex-col rounded-md border border-black/10 bg-white shadow-[0_0_10px_rgba(0,0,0,0.10)] dark:border-gray-900/50 dark:bg-[#40414F] dark:text-white dark:shadow-[0_0_15px_rgba(0,0,0,0.10)] sm:mx-4">
+  <button
+    className="absolute left-2 top-2 rounded-sm p-1 text-neutral-800 opacity-60 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-opacity-50 dark:text-neutral-100 dark:hover:text-neutral-200"
+    onClick={() => setShowPluginSelect(!showPluginSelect)}
+    onKeyDown={(e) => {}}
+  >
+    {plugin ? plugin.id == PluginID.GOOGLE_SEARCH ? <IconBrandGoogle size={20} /> : <IconFileDatabase size={20} /> : <IconBolt size={20} />}
+  </button>
+  
+  {plugin && plugin.id === PluginID.DOC_CHAT && (
+    <>
+      <input
+        type="file"
+        id="fileUpload"
+        className="hidden"
+        onChange={handleUploadDocument}
+        accept='.pdf, .doc, .docx, .json, .jsonl, .txt'
+      />
+      <label
+        htmlFor="fileUpload"
+        className="absolute right-10 top-2 rounded-sm p-1 text-neutral-800 opacity-60 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-opacity-50 dark:text-neutral-100 dark:hover:text-neutral-200 cursor-pointer"
+      >
+        <IconUpload size={20} />
+      </label>
+    </>
+  )}
 
           {showPluginSelect && (
             <div className="absolute left-0 bottom-14 rounded bg-white dark:bg-[#343541]">

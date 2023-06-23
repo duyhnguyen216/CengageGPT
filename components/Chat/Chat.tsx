@@ -21,7 +21,7 @@ import {
 import { throttle } from '@/utils/data/throttle';
 
 import { ChatBody, Conversation, Message } from '@/types/chat';
-import { Plugin } from '@/types/plugin';
+import { Plugin, PluginID } from '@/types/plugin';
 
 import HomeContext from '@/pages/api/home/home.context';
 
@@ -33,7 +33,7 @@ import { ModelSelect } from './ModelSelect';
 import { SystemPrompt } from './SystemPrompt';
 import { TemperatureSlider } from './Temperature';
 import { MemoizedChatMessage } from './MemoizedChatMessage';
-import { exportData } from '@/utils/app/importExport';
+import { exportData, getUserName } from '@/utils/app/importExport';
 
 interface Props {
   stopConversationRef: MutableRefObject<boolean>;
@@ -57,6 +57,7 @@ export const Chat = memo(({ stopConversationRef, accountCost }: Props) => {
       modelError,
       loading,
       prompts,
+      docs,
     },
     handleUpdateConversation,
     dispatch: homeDispatch,
@@ -97,18 +98,24 @@ export const Chat = memo(({ stopConversationRef, accountCost }: Props) => {
         });
         homeDispatch({ field: 'loading', value: true });
         homeDispatch({ field: 'messageIsStreaming', value: true });
+        const sasTokenRes = await fetch('api/getSasToken');
+        const sasTokenData = await sasTokenRes.json();
+        const username = await getUserName();
         const chatBody: ChatBody = {
           model: updatedConversation.model,
           messages: updatedConversation.messages,
           key: apiKey,
           prompt: updatedConversation.prompt,
           temperature: updatedConversation.temperature,
+          sasToken: sasTokenData.sasToken,
+          username: username,
         };
         const endpoint = getEndpoint(plugin);
         let body;
-        if (!plugin) {
+        if (!plugin || plugin.id == PluginID.DOC_CHAT) {
           body = JSON.stringify(chatBody);
         } else if (pluginKeys && pluginKeys.length != 0) { //Using plugin such as google
+          //Pass plugin keys if exist
           body = JSON.stringify({
             ...chatBody,
             googleAPIKey: pluginKeys
@@ -127,6 +134,7 @@ export const Chat = memo(({ stopConversationRef, accountCost }: Props) => {
         }
 
         const controller = new AbortController();
+        await new Promise(resolve => setTimeout(resolve, 3)); //brief 3ms delay to avoid spamming 
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
@@ -165,19 +173,14 @@ export const Chat = memo(({ stopConversationRef, accountCost }: Props) => {
         let isFirst = true;
         let text = '';
         while (!done) {
-          console.log("DN starting a read/stream cycle");
           if (stopConversationRef.current === true) {
             controller.abort();
             done = true;
             break;
           }
-          console.log("DN about to parse reader");
           const { value, done: doneReading } = await reader.read();
-          console.log("DN done parsing");
           done = doneReading;
           const chunkValue = decoder.decode(value);
-          console.log("DN done decode");
-          console.log("DN chunk length:" + chunkValue.length);
           if (chunkValue.length == 0) {
             done = true;
           }
@@ -208,17 +211,14 @@ export const Chat = memo(({ stopConversationRef, accountCost }: Props) => {
                 }
                 return message;
               });
-              console.log("DN done upload mesg object");
             updatedConversation = {
               ...updatedConversation,
               messages: updatedMessages,
             };
-            console.log("DN done upload conversation")
             homeDispatch({
               field: 'selectedConversation',
               value: updatedConversation,
             });
-            console.log("DN dispatching event");
           }
         }
         saveConversation(updatedConversation);
@@ -364,9 +364,9 @@ export const Chat = memo(({ stopConversationRef, accountCost }: Props) => {
             Welcome to CengageGPT. The API Key can not be loaded, please contact system admin!
           </div>
           <div className="text-center text-lg text-black dark:text-white">
-            <div className="mb-8">{`Chatbot UI is an open source clone of OpenAI's ChatGPT UI.`}</div>
+            <div className="mb-8">{`CengageGPT is Cengage's version of ChatGPT where data is contained.`}</div>
             <div className="mb-2 font-bold">
-              Important: CengageGPT UI is not free like ChatGPT. Please be considerate of your usage. Employees should not use Cengage GPT to generate content for commercial products, or enter personal information/data.
+              Important: CengageGPT is not free like ChatGPT. Please be considerate of your usage. Employees should not use Cengage GPT to generate content for commercial products, or enter personal information/data.
             </div>
           </div>
         </div>
@@ -411,7 +411,7 @@ export const Chat = memo(({ stopConversationRef, accountCost }: Props) => {
                     )}
                   </div>
                   <div className="font-italic text-center">
-                    CengageGPT is not free like ChatGPT. Please be considerate of your usage. Employees should not use Cengage GPT to generate content for commercial products, or enter personal information/data.
+                    CengageGPT could be costly for Cengage. Please be considerate of your usage. Employees should not use Cengage GPT to generate content for commercial products, or enter personal information/data.
                   </div>
 
                   {models.length > 0 && (

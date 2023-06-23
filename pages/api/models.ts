@@ -15,7 +15,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     let url = `${OPENAI_API_HOST}/v1/models`;
     if (OPENAI_API_TYPE === 'azure') {
-      url = `${OPENAI_API_HOST}/openai/deployments?api-version=${OPENAI_API_VERSION}`;
+      url = `${OPENAI_API_HOST}/openai/deployments?api-version=2023-03-15-preview`;
     }
 
     const response = await fetch(url, {

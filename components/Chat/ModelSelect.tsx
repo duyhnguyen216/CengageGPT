@@ -3,7 +3,7 @@ import { useContext } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import { OpenAIModel } from '@/types/openai';
+import { OpenAIModel, OpenAIModelID, OpenAIModels } from '@/types/openai';
 
 import HomeContext from '@/pages/api/home/home.context';
 import { Conversation, Message } from '@/types/chat';
@@ -78,6 +78,7 @@ export const ModelSelect = ({accountCost, conversations}:Props) => {
   const calculateUserCost = (convs:Conversation[], today?:Date):string => {
     let gpt35Cost:number = 0;
     let gpt4Cost:number = 0;
+    let dalleCost:number = 0;
     // if (today){ // get today's messages
     //   messages = convs.filter(c => c.date == today.toISOString().split('T')[0])
     // }
@@ -85,9 +86,11 @@ export const ModelSelect = ({accountCost, conversations}:Props) => {
     //   messages = convs.map(c => c.messages).flat()// get messages across entire conv history for a user
     let gpt35Messages = convs.filter(c => c.model.name == "GPT-3.5").map(m => m.messages).flat()
     let gpt4Messages = convs.filter(c => c.model.name == 'GPT-4').map(m => m.messages).flat()
+    let dalleMessages = convs.filter(c => c.model.name == OpenAIModelID.DALL_E).map(m => m.messages).flat()
 
     gpt35Cost  = gpt35Messages.length > 0 ? getCost(gpt35Messages, "GPT-3.5") : 0;
     gpt4Cost = gpt4Messages.length > 0 ? getCost(gpt4Messages, 'GPT-4') : 0
+    dalleCost = gpt4Messages.length > 0 ? getCost(dalleMessages, OpenAIModelID.DALL_E) : 0
 
     return (gpt35Cost + gpt4Cost).toFixed(2)
   }

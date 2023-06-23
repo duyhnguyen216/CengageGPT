@@ -3,7 +3,6 @@ const { i18n } = require('./next-i18next.config');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   i18n,
-  devtool: 'source-map',
   reactStrictMode: false,
 
   webpack(config, { isServer, dev }) {
@@ -11,7 +10,7 @@ const nextConfig = {
       asyncWebAssembly: true,
       layers: true,
     };
-
+    devtool: 'source-map';
     return config;
   },
 };

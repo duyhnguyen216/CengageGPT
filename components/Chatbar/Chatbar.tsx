@@ -27,6 +27,7 @@ import { ChatbarInitialState, initialState } from './Chatbar.state';
 import { v4 as uuidv4 } from 'uuid';
 import { fetchConstantValue } from '@/utils/app/fetchConstant';
 import { CosmosClient } from '@azure/cosmos';
+import { useRouter } from 'next/router';
 
 
 // TODO Refactor this and the on in importExport
@@ -77,6 +78,7 @@ const fetchConversations = async () => {
     };
 
     const { resources: conversation } = await container.items.query(query).fetchAll();
+
     // If item exists, update it
     if (conversation && conversation[0]) {
       return conversation[0];
@@ -168,6 +170,10 @@ export const Chatbar = () => {
       const importedData = await fetchConversations();
       if (importedData) {
         // Update your state here
+        localStorage.removeItem('conversations');
+        localStorage.removeItem('folders');
+        localStorage.removeItem('prompts');
+        
         homeDispatch({ field: 'conversations', value: importedData.history });
 
         if (importedData.history && importedData.history.length != 0) {
@@ -263,6 +269,16 @@ export const Chatbar = () => {
     homeDispatch({ field: 'showChatbar', value: !showChatbar });
     localStorage.setItem('showChatbar', JSON.stringify(!showChatbar));
   };
+
+  function useSignOut() {
+    const router = useRouter();
+  
+    const signOut = () => {
+      router.push('/.auth/logout');
+    }
+  
+    return signOut;
+  }
 
   const handleDrop = (e: any) => {
     if (e.dataTransfer) {

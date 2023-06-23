@@ -27,6 +27,7 @@ export interface HomeInitialState {
   defaultModelId: OpenAIModelID | undefined;
   serverSideApiKeyIsSet: boolean;
   serverSidePluginKeysSet: boolean;
+  docs: File[];
 }
 
 export const initialState: HomeInitialState = {
@@ -51,4 +52,5 @@ export const initialState: HomeInitialState = {
   defaultModelId: undefined,
   serverSideApiKeyIsSet: false,
   serverSidePluginKeysSet: false,
+  docs: [],
 };

@@ -30,9 +30,6 @@ import { KeyValuePair } from '@/types/data';
 import { FolderInterface, FolderType } from '@/types/folder';
 import { OpenAIModelID, OpenAIModels, fallbackModelID } from '@/types/openai';
 import { Prompt } from '@/types/prompt';
-import { TokenTextSplitter } from "langchain/text_splitter";
-import { Document } from "langchain/document";
-// import { DocxLoader } from "langchain/document_loaders/fs/docx";
 
 import { Chat } from '@/components/Chat/Chat';
 import { Chatbar } from '@/components/Chatbar/Chatbar';
@@ -43,10 +40,9 @@ import { HomeInitialState, initialState } from './home.state';
 
 import { v4 as uuidv4 } from 'uuid';
 import { PluginKey } from '@/types/plugin';
-import { exportData } from '@/utils/app/importExport';
+import { exportData, getUserInfo, getUserName } from '@/utils/app/importExport';
+import { AnonymousCredential, newPipeline, BlobServiceClient } from "@azure/storage-blob";
 
-import { ConsumptionManagementClient } from '@azure/arm-consumption'
-import { InteractiveBrowserCredential } from '@azure/identity';
 
 interface Props {
   serverSideApiKeyIsSet: boolean;
@@ -76,7 +72,8 @@ const Home = ({
       conversations,
       selectedConversation,
       prompts,
-      temperature
+      temperature,
+      docs,
     },
     dispatch,
   } = contextValue;
@@ -235,34 +232,59 @@ const Home = ({
     exportData(true);
   };
 
+
   const handleUploadDocument = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const maxTotalFileSize = 100 * 1024 * 1024; // 100 MB
+    const storageAccount = 'cengageai'; // Azure storage account name
+    const containerName = 'cengagegpt-docs'; // Blob container name
+    const username = await getUserName();
 
-    // Calculate the total size of all uploaded files
-    const totalFileSize = Array.from(e.target.files || []).reduce(
-      (accumulator: number, file: File) => accumulator + file.size,
-      0
-    );
+    try {
+      // Fetch SAS token from server
+      const res = await fetch('api/getSasToken');
+      const data = await res.json();
 
-    // Check if the total file size exceeds the limit
-    if (totalFileSize > maxTotalFileSize) {
-      alert(`Total file size must be less than ${maxTotalFileSize / (1024 * 1024)} MB.`);
-      return;
+      const pipeline = newPipeline(new AnonymousCredential());
+      const blobServiceClient = new BlobServiceClient(
+        `https://${storageAccount}.blob.core.windows.net?${data.sasToken}`,
+        pipeline
+      );
+
+      const containerClient = blobServiceClient.getContainerClient(containerName);
+
+      // Process each uploaded file
+      const MAX_FILE_SIZE = 5 * 1024 * 1024;
+      let ignoredFiles = [];
+      for (const file of Array.from(e.target.files || [])) {
+        if (file.size > MAX_FILE_SIZE) {
+          // If file size is more than 5MB, skip this file and add to ignored list
+          ignoredFiles.push(file.name);
+          continue;
+        }
+
+        //Delete old folder
+        let blobs = containerClient.listBlobsFlat({ prefix: `${username}/` });
+
+        for await (const blob of blobs) {
+          const blockBlobClient = containerClient.getBlockBlobClient(blob.name);
+          await blockBlobClient.delete();
+        }
+
+        //Upload new file
+        const blobName = `${username}/${file.name}`;
+        const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+        const options = { blobHTTPHeaders: { blobContentType: file.type } };
+        const ret = await blockBlobClient.uploadData(file, options);
+
+      }
+      if (ignoredFiles.length > 0) {
+        alert(`The following files were not uploaded because they exceed the maximum size limit of 5MB: ${ignoredFiles.join(", ")}`);
+      } else {
+        alert('Files uploaded successfully!');
+      }
+    } catch (err) {
+      console.error('Error uploading files:', err);
+      alert("Error uploading files " + err)
     }
-    let docs: Document[] = [];
-    const splitter = new TokenTextSplitter({
-      encodingName: "gpt2",
-      chunkSize: 1000,
-      chunkOverlap: 100,
-    });
-    // Process each uploaded file
-    // for (const file of Array.from(e.target.files || [])) {
-    //   const loader = new DocxLoader(file);
-    //   const output = await loader.loadAndSplit(splitter);
-    //   docs.push(...output);
-    // }
-
-    //dispatch({ field: 'docs', value: docs });
   };
 
   // EFFECTS  --------------------------------------------

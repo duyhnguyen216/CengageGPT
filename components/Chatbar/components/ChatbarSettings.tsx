@@ -1,4 +1,4 @@
-import { IconFileExport, IconSettings } from '@tabler/icons-react';
+import { IconFileExport, IconSettings, IconLogout } from '@tabler/icons-react';
 import { useContext, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
@@ -7,13 +7,24 @@ import HomeContext from '@/pages/api/home/home.context';
 
 import { SettingDialog } from '@/components/Settings/SettingDialog';
 
-import { Import } from '../../Settings/Import';
 import { Key } from '../../Settings/Key';
 import { SidebarButton } from '../../Sidebar/SidebarButton';
 import ChatbarContext from '../Chatbar.context';
 import { ClearConversations } from './ClearConversations';
 import { PluginKeys } from './PluginKeys';
 import { exportData } from '@/utils/app/importExport';
+import { useRouter } from 'next/router';
+
+const useSignOut = () => {
+  const router = useRouter();
+
+  const signOut = () => {
+    const callbackUrl = `/.auth/logout?post_logout_redirect_uri=${encodeURIComponent('/')}`;
+    router.push(callbackUrl);
+  };
+
+  return signOut;
+};
 
 export const ChatbarSettings = () => {
   const { t } = useTranslation('sidebar');
@@ -68,6 +79,12 @@ export const ChatbarSettings = () => {
         onClose={() => {
           setIsSettingDialog(false);
         }}
+      />
+
+      <SidebarButton
+        text={t('Sign out')}
+        icon={<IconLogout size={18} />}
+        onClick={useSignOut()}
       />
     </div>
   );

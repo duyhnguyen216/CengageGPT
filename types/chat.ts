@@ -1,8 +1,10 @@
 import { OpenAIModel } from './openai';
+import { PluginID } from './plugin';
 
 export interface Message {
   role: Role;
   content: string;
+  plugin?: PluginID;
 }
 
 export type Role = 'assistant' | 'user' | 'system';
@@ -13,6 +15,8 @@ export interface ChatBody {
   key: string;
   prompt: string;
   temperature: number;
+  sasToken: string;
+  username: string;
 }
 
 export interface Conversation {

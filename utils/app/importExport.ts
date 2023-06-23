@@ -95,12 +95,8 @@ export async function getUserInfo() {
   }
 }
 
-export const exportData = async (writeToDatabase = false, downloadData = false) => {
-  let history = localStorage.getItem('conversationHistory');
-  let folders = localStorage.getItem('folders');
-  let prompts = localStorage.getItem('prompts');
+export async function getUserName() {
   let userInfo;
-
   try {
     userInfo = await getUserInfo();
   } catch (e) {
@@ -110,6 +106,14 @@ export const exportData = async (writeToDatabase = false, downloadData = false) 
   if (userInfo != undefined && userInfo[0].user_id != undefined) {
     username = userInfo[0].user_id;
   }
+  return username;
+}
+
+export const exportData = async (writeToDatabase = false, downloadData = false) => {
+  let history = localStorage.getItem('conversationHistory');
+  let folders = localStorage.getItem('folders');
+  let prompts = localStorage.getItem('prompts');
+  const username = await getUserName();
 
   if (history) {
     history = JSON.parse(history);
@@ -183,14 +187,14 @@ export const exportData = async (writeToDatabase = false, downloadData = false) 
     }
   }
   if (downloadData) {
-    let exportData = {...data};
+    let exportData = { ...data };
     exportData.id = '';
     const blob = new Blob([JSON.stringify(exportData, null, 2)], {
       type: 'application/json',
     });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.download = `CengageGPT_${exportData.username}_history_${currentDate()}.json`;
+    link.download = `CengageGPT_${exportData.username}_history_${currentDate()}.txt`;
     link.href = url;
     link.style.display = 'none';
     document.body.appendChild(link);
@@ -259,4 +263,20 @@ export const importData = (
     prompts: newPrompts,
   };
 };
+
+export const downloadConversation = async (conversation: Conversation) => {
+  const username = await getUserName();
+  const blob = new Blob([JSON.stringify(conversation, null, 2)], {
+    type: 'application/json',
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.download = `CengageGPT_${conversation.name}_history_${username}.txt`;
+  link.href = url;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
 

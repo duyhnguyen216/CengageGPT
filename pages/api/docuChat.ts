@@ -56,7 +56,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
             temperature: temperature,
             modelName: modeID,
             streaming: true,
-            maxTokens: 4000,
+            maxTokens: 2000,
         });
 
         const memory = new BufferMemory({

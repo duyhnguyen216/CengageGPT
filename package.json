@@ -21,7 +21,7 @@
     "eventsource-parser": "^0.1.0",
     "hnswlib-node": "^1.4.2",
     "i18next": "^22.4.13",
-    "langchain": "^0.0.88",
+    "langchain": "^0.0.102",
     "mammoth": "^1.6.0",
     "next": "13.2.4",
     "next-i18next": "^13.2.2",

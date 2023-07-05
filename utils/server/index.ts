@@ -60,7 +60,7 @@ export const OpenAIStream = async (
             return err; 
         });
   } else if (OPENAI_API_TYPE === 'azure') {
-    const modeID = model.id == OpenAIModelID.GPT_3_5 ? 'GPT35Turbo' : model.id;
+    const modeID = model.id == 'GPT35Turbo' ? 'GPT35Turbo16K' : model.id;
     url = `${OPENAI_API_HOST}/openai/deployments/${modeID}/chat/completions?api-version=${OPENAI_API_VERSION}`;
   }
 

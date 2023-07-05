@@ -63,6 +63,7 @@ const handler = async (req: Request): Promise<Response> => {
       })
       .filter(Boolean);
 
+    models.sort((a, b) => a.name.localeCompare(b.name));
     models.push(OpenAIModels['dall-e']);
     return new Response(JSON.stringify(models), { status: 200 });
   } catch (error) {

@@ -116,7 +116,7 @@ export const ModelSelect = ({accountCost, conversations}:Props) => {
               key={model.id}
               value={model.id}
               className="dark:bg-[#343541] dark:text-white"
-              disabled={index === models.length - 2}
+              disabled={model.name === OpenAIModels['gpt-4-32k'].name}
             >
               {model.id === defaultModelId
                 ? `Default (${model.name})`

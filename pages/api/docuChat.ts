@@ -50,7 +50,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
         );
 
 
-        const modeID = model.id == 'GPT35Turbo' ? 'GPT35TURBO16K' : model.name;
+        const modeID = model.id == 'GPT35Turbo' || OpenAIModelID.GPT_3_5_16K_AZ ? 'GPT35Turbo16K' : model.id;
 
         const chat = new ChatOpenAI({
             temperature: temperature,

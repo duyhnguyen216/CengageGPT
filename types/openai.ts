@@ -17,7 +17,7 @@ export enum OpenAIModelID {
 }
 
 // in case the `DEFAULT_MODEL` environment variable is not set or set to an unsupported model
-export const fallbackModelID = OpenAIModelID.GPT_3_5;
+export const fallbackModelID = OpenAIModelID.GPT_3_5_16K_AZ;
 
 export const OpenAIModels: Record<OpenAIModelID, OpenAIModel> = {
   [OpenAIModelID.GPT_3_5]: {
@@ -27,7 +27,7 @@ export const OpenAIModels: Record<OpenAIModelID, OpenAIModel> = {
     tokenLimit: 4000,
   },
   [OpenAIModelID.GPT_3_5_16K_AZ]: {
-    id: OpenAIModelID.GPT_3_5,
+    id: OpenAIModelID.GPT_3_5_16K_AZ,
     name: 'GPT-3.5',
     maxLength: 12000,
     tokenLimit: 16000,

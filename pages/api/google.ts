@@ -144,7 +144,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
     `;
 
     const answerMessage: Message = { role: 'user', content: answerPrompt };
-    const modeID = model.id == 'GPT35Turbo' ? 'GPT35Turbo16K' : model.id;
+    const modeID = model.id == 'GPT35Turbo' || OpenAIModelID.GPT_3_5_16K_AZ ? 'GPT35Turbo16K' : model.id;
     const url = `${OPENAI_API_HOST}/openai/deployments/${modeID}/chat/completions?api-version=${OPENAI_API_VERSION}`;
     const answerRes = await fetch(url, {
       headers: {

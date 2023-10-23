@@ -280,3 +280,100 @@ export const downloadConversation = async (conversation: Conversation) => {
   URL.revokeObjectURL(url);
 }
 
+const getCosmosClient = async () => {
+  // Fetch constant values for DB connection
+  const [endpoint, key, databaseId, containerId] = await Promise.all([
+    fetchConstantValue('DB_HOST'),
+    fetchConstantValue('DB_PASSWORD'),
+    fetchConstantValue('DB_ID'),
+    fetchConstantValue('DB_CONTAINER_ID'),
+  ]);
+  return new CosmosClient({ endpoint, key });
+};
+
+export const writeDataToDB = async (data: { version?: number; id: any; username: any; history?: any; folders?: any; prompts?: any; }, type: string) => {
+  const client = await getCosmosClient();
+  const databaseId = await fetchConstantValue('DB_ID');
+  const containerId = await fetchConstantValue('DB_CONTAINER_ID');
+  const container = client.database(databaseId).container(containerId);
+  try {
+    // Your existing logic for querying and updating/inserting data
+    const query = {
+      query: "SELECT * FROM Conversations WHERE Conversations.username = @username",
+      parameters: [{ name: "@username", value: data.username }]
+    };
+    const { resources: conversation } = await container.items.query(query).fetchAll();
+    if (conversation && conversation[0]) {
+      data.id = conversation[0].id;
+      await container.item(conversation[0].id).replace(data);
+    } else {
+      await container.items.create(data);
+    }
+  } catch (err) {
+    console.error(`Error writing ${type} to DB:`, err);
+    throw err;
+  }
+};
+
+export const writeHistoryToDB = async (history: any) => {
+  const data = {
+    version: 4,
+    id: '',
+    username: await getUserName(),
+    history: history || [],
+  };
+  return writeDataToDB(data, 'history');
+};
+
+export const writeFoldersToDB = async (folders: any) => {
+  const data = {
+    version: 4,
+    id: '',
+    username: await getUserName(),
+    folders: folders || [],
+  };
+  return writeDataToDB(data, 'folders');
+};
+
+export const writePromptsToDB = async (prompts: any) => {
+  const data = {
+    version: 4,
+    id: '',
+    username: await getUserName(),
+    prompts: prompts || [],
+  };
+  return writeDataToDB(data, 'prompts');
+};
+
+export const readDataFromDB = async (type: string) => {
+  const client = await getCosmosClient();
+  const databaseId = await fetchConstantValue('DB_ID');
+  const containerId = await fetchConstantValue('DB_CONTAINER_ID');
+  const container = client.database(databaseId).container(containerId);
+  try {
+    const query = {
+      query: `SELECT * FROM Conversations WHERE Conversations.username = @username`,
+      parameters: [{ name: "@username", value: await getUserName() }]
+    };
+    const { resources: conversation } = await container.items.query(query).fetchAll();
+    if (conversation && conversation[0]) {
+      return conversation[0][type] || [];
+    }
+    return [];
+  } catch (err) {
+    console.error(`Error reading ${type} from DB:`, err);
+    throw err;
+  }
+};
+
+export const readHistoryFromDB = async (username: any) => {
+  return readDataFromDB('history');
+};
+
+export const readFoldersFromDB = async (username: any) => {
+  return readDataFromDB('folders');
+};
+
+export const readPromptsFromDB = async (username: any) => {
+  return readDataFromDB('prompts');
+};

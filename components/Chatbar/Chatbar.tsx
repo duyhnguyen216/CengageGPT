@@ -176,7 +176,7 @@ export const Chatbar = () => {
         
         homeDispatch({ field: 'conversations', value: importedData.history });
 
-        if (importedData.history && importedData.history.length != 0) {
+        if (importedData.history && importedData.history?.length != 0) {
           homeDispatch({
             field: 'selectedConversation',
             value: importedData.history[importedData.history.length - 1],
@@ -189,7 +189,7 @@ export const Chatbar = () => {
     };
 
     loadConversations();
-  }, []);
+  }, [importData]);
 
   const handleImportConversations = (data: SupportedExportFormats) => {
     const { history, folders, prompts }: LatestExportFormat = importData(data);

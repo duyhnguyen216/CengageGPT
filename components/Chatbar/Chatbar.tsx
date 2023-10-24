@@ -185,11 +185,15 @@ export const Chatbar = () => {
 
         homeDispatch({ field: 'folders', value: importedData.folders });
         homeDispatch({ field: 'prompts', value: importedData.prompts });
+
+        localStorage.setItem('conversations', importedData.history);
+        localStorage.setItem('folders', JSON.stringify(importedData.folders));
+        localStorage.setItem('prompts', JSON.stringify(importedData.prompts));
       }
     };
 
     loadConversations();
-  }, [importData]);
+  }, []);
 
   const handleImportConversations = (data: SupportedExportFormats) => {
     const { history, folders, prompts }: LatestExportFormat = importData(data);

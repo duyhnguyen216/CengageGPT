@@ -376,7 +376,8 @@ const Home = ({
       dispatch({ field: 'showPromptbar', value: showPromptbar === 'true' });
     }
 
-    const folders = localStorage.getItem('folders');
+    try {
+      const folders = localStorage.getItem('folders');
     if (folders) {
       dispatch({ field: 'folders', value: JSON.parse(folders) });
     }
@@ -385,6 +386,10 @@ const Home = ({
     if (prompts) {
       dispatch({ field: 'prompts', value: JSON.parse(prompts) });
     }
+    } catch {
+      
+    }
+    
 
     const conversationHistory = localStorage.getItem('conversationHistory');
     if (conversationHistory) {

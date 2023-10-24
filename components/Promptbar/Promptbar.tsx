@@ -99,7 +99,7 @@ const Promptbar = () => {
   };
 
   useEffect(() => {
-    if (searchTerm) {
+    if (searchTerm || searchTerm.trim() != "") {
       promptDispatch({
         field: 'filteredPrompts',
         value: prompts.filter((prompt) => {

@@ -7,6 +7,7 @@ import {
   IconRepeat,
   IconSend,
   IconUpload,
+  IconTrash,
 } from '@tabler/icons-react';
 import {
   ChangeEvent,
@@ -31,9 +32,10 @@ import HomeContext from '@/pages/api/home/home.context';
 import { PluginSelect } from './PluginSelect';
 import { PromptList } from './PromptList';
 import { VariableModal } from './VariableModal';
+import { OpenAIModelID } from '@/types/openai';
 
 interface Props {
-  onSend: (message: Message, plugin: Plugin | null) => void;
+  onSend: (message: Message, plugin: Plugin | null, images: string[]) => void;
   onRegenerate: () => void;
   onScrollDownClick: () => void;
   stopConversationRef: MutableRefObject<boolean>;
@@ -54,10 +56,11 @@ export const ChatInput = ({
   const {
     state: { selectedConversation, messageIsStreaming, prompts },
     handleUploadDocument,
+    handleUploadImage,
     dispatch: homeDispatch,
   } = useContext(HomeContext);
 
-  const [content, setContent] = useState<string>();
+  const [content, setContent] = useState<string>('');
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const [showPromptList, setShowPromptList] = useState(false);
   const [activePromptIndex, setActivePromptIndex] = useState(0);
@@ -66,6 +69,7 @@ export const ChatInput = ({
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [showPluginSelect, setShowPluginSelect] = useState(false);
   const [plugin, setPlugin] = useState<Plugin | null>(null);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
 
   const promptListRef = useRef<HTMLUListElement | null>(null);
 
@@ -96,18 +100,13 @@ export const ChatInput = ({
       return;
     }
 
-    if (!content) {
-      alert(t('Please enter a message'));
+    if (!content && uploadedImages.length === 0) {
+      alert(t('Please enter a message or upload an image'));
       return;
     }
 
-    onSend({ role: 'user', content }, plugin);
+    onSend({ role: 'user', content }, plugin, uploadedImages);
     setContent('');
-    //setPlugin(null);
-
-    if (window.innerWidth < 640 && textareaRef && textareaRef.current) {
-      textareaRef.current.blur();
-    }
   };
 
   const handleStopConversation = () => {
@@ -227,6 +226,22 @@ export const ChatInput = ({
     }
   };
 
+  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      const fileURLs = files.map((file) => URL.createObjectURL(file));
+      setUploadedImages((prevImages) => [...prevImages, ...fileURLs]);
+      handleUploadImage(e); // Assuming this handles the actual upload process
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setUploadedImages((prevImages) => prevImages.filter((_, i) => i !== index));
+    if (selectedConversation != null) {
+      selectedConversation.images = undefined;
+    }
+  };
+
   useEffect(() => {
     if (promptListRef.current) {
       promptListRef.current.scrollTop = activePromptIndex * 30;
@@ -283,32 +298,66 @@ export const ChatInput = ({
             </button>
           )}
 
-<div className="relative mx-2 flex w-full flex-grow flex-col rounded-md border border-black/10 bg-white shadow-[0_0_10px_rgba(0,0,0,0.10)] dark:border-gray-900/50 dark:bg-[#40414F] dark:text-white dark:shadow-[0_0_15px_rgba(0,0,0,0.10)] sm:mx-4">
-  <button
-    className="absolute left-2 top-2 rounded-sm p-1 text-neutral-800 opacity-60 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-opacity-50 dark:text-neutral-100 dark:hover:text-neutral-200"
-    onClick={() => setShowPluginSelect(!showPluginSelect)}
-    onKeyDown={(e) => {}}
-  >
-    {plugin ? plugin.id == PluginID.GOOGLE_SEARCH ? <IconBrandGoogle size={20} /> : <IconFileDatabase size={20} /> : <IconBolt size={20} />}
-  </button>
-  
-  {plugin && plugin.id === PluginID.DOC_CHAT && (
-    <>
-      <input
-        type="file"
-        id="fileUpload"
-        className="hidden"
-        onChange={handleUploadDocument}
-        accept='.pdf, .doc, .docx, .json, .jsonl, .txt'
-      />
-      <label
-        htmlFor="fileUpload"
-        className="absolute right-10 top-2 rounded-sm p-1 text-neutral-800 opacity-60 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-opacity-50 dark:text-neutral-100 dark:hover:text-neutral-200 cursor-pointer"
-      >
-        <IconUpload size={20} />
-      </label>
-    </>
-  )}
+        <div className="relative mx-2 flex w-full flex-grow flex-col rounded-md border border-black/10 bg-white shadow-[0_0_10px_rgba(0,0,0,0.10)] dark:border-gray-900/50 dark:bg-[#40414F] dark:text-white dark:shadow-[0_0_15px_rgba(0,0,0,0.10)] sm:mx-4">
+          <button
+            className="absolute left-2 top-2 rounded-sm p-1 text-neutral-800 opacity-60 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-opacity-50 dark:text-neutral-100 dark:hover:text-neutral-200"
+            onClick={() => setShowPluginSelect(!showPluginSelect)}
+            onKeyDown={(e) => {}}
+          >
+            {plugin ? plugin.id == PluginID.GOOGLE_SEARCH ? <IconBrandGoogle size={20} /> : <IconFileDatabase size={20} /> : <IconBolt size={20} />}
+          </button>
+          
+          {plugin && plugin.id === PluginID.DOC_CHAT && (
+            <>
+              <input
+                type="file"
+                id="fileUpload"
+                className="hidden"
+                onChange={handleUploadDocument}
+                accept='.pdf, .doc, .docx, .json, .jsonl, .txt'
+              />
+              <label
+                htmlFor="fileUpload"
+                className="absolute right-10 top-2 rounded-sm p-1 text-neutral-800 opacity-60 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-opacity-50 dark:text-neutral-100 dark:hover:text-neutral-200 cursor-pointer"
+              >
+                <IconUpload size={20} />
+              </label>
+            </>
+          )}
+
+          {selectedConversation?.model.id === OpenAIModelID.GPT_4o && (
+            <>
+              <input
+                type="file"
+                id="imageUpload"
+                className="hidden"
+                onChange={handleImageUpload}
+                accept='.jpeg, .jpg'
+              />
+              <label
+                htmlFor="imageUpload"
+                className="absolute right-10 top-2 rounded-sm p-1 text-neutral-800 opacity-60 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-opacity-50 dark:text-neutral-100 dark:hover:text-neutral-200 cursor-pointer"
+              >
+                <IconUpload size={20} />
+              </label>
+            </>
+          )}
+
+          {uploadedImages.length > 0 && (
+            <div className="flex flex-wrap gap-2 p-2">
+              {uploadedImages.map((image, index) => (
+                <div key={index} className="relative">
+                  <img src={image} alt={`Uploaded ${index}`} className="h-20 w-20 object-cover rounded" />
+                  <button
+                    className="absolute top-0 right-0 m-1 rounded-full bg-red-500 text-white p-1"
+                    onClick={() => handleRemoveImage(index)}
+                  >
+                    <IconTrash size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
           {showPluginSelect && (
             <div className="absolute left-0 bottom-14 rounded bg-white dark:bg-[#343541]">

@@ -1,7 +1,7 @@
 import { DEFAULT_SYSTEM_PROMPT, DEFAULT_TEMPERATURE } from '@/utils/app/const';
 import { OpenAIError, OpenAIStream } from '@/utils/server';
 
-import { ChatBody, Message } from '@/types/chat';
+import { ChatBody, ContentItem, Message, MultimodalMessage, RequestBody } from '@/types/chat';
 
 // @ts-expect-error
 import wasm from '../../node_modules/@dqbd/tiktoken/lite/tiktoken_bg.wasm?module';
@@ -13,9 +13,18 @@ export const config = {
   runtime: 'edge',
 };
 
+function extractTextFromMessages(message: MultimodalMessage): string {
+    for (const contentItem of message.content) {
+      if (contentItem.type === "text") {
+        return contentItem.text;
+      }
+    }
+  return '';
+}
+
 const handler = async (req: Request): Promise<Response> => {
   try {
-    const { model, messages, key, prompt, temperature } = (await req.json()) as ChatBody;
+    const { model, messages, key, prompt, temperature } = (await req.json()) as RequestBody;
 
     await init((imports) => WebAssembly.instantiate(wasm, imports));
     const encoding = new Tiktoken(
@@ -37,11 +46,11 @@ const handler = async (req: Request): Promise<Response> => {
     const prompt_tokens = encoding.encode(promptToSend);
 
     let tokenCount = prompt_tokens.length;
-    let messagesToSend: Message[] = [];
+    let messagesToSend: MultimodalMessage[] = [];
 
     for (let i = messages.length - 1; i >= 0; i--) {
       const message = messages[i];
-      const tokens = encoding.encode(message.content);
+      const tokens = encoding.encode(extractTextFromMessages(message));
 
       if (tokenCount + tokens.length + 1000 > model.tokenLimit) {
         break;

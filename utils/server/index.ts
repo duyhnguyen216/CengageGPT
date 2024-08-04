@@ -1,4 +1,4 @@
-import { Message } from '@/types/chat';
+import { Message, MultimodalMessage } from '@/types/chat';
 import { OpenAIModel, OpenAIModelID } from '@/types/openai';
 import { Configuration, OpenAIApi } from "openai";
 
@@ -34,7 +34,7 @@ export const OpenAIStream = async (
   systemPrompt: string,
   temperature: number,
   key: string,
-  messages: Message[],
+  messages: MultimodalMessage[],
 ) => {
   let url = `${OPENAI_API_HOST}/v1/chat/completions`;
   if (model.id == OpenAIModelID.DALL_E) {
@@ -60,7 +60,7 @@ export const OpenAIStream = async (
             return err; 
         });
   } else if (OPENAI_API_TYPE === 'azure') {
-    const modeID = model.id == 'GPT35Turbo' || OpenAIModelID.GPT_3_5_16K_AZ ? 'GPT35Turbo16K' : model.id;
+    const modeID = model.id == 'GPT35Turbo' || model.id == OpenAIModelID.GPT_3_5_16K_AZ ? 'GPT35Turbo16K' : model.id;
     url = `${OPENAI_API_HOST}/openai/deployments/${modeID}/chat/completions?api-version=${OPENAI_API_VERSION}`;
   }
 
@@ -87,7 +87,7 @@ export const OpenAIStream = async (
         },
         ...messages,
       ],
-      max_tokens: 2000,
+      max_tokens: 2500,
       temperature: temperature,
       stream: true,
     }),
@@ -121,11 +121,11 @@ export const OpenAIStream = async (
 
           try {
             const json = JSON.parse(data);
-            if (json.choices[0].finish_reason != null) {
+            if ((json.choices[0]?.finish_reason ?? null) != null) {
               controller.close();
               return;
             }
-            const text = json.choices[0].delta.content;
+            const text = json.choices?.[0]?.delta?.content ?? json.choices?.[0]?.message?.content ?? '';
             const queue = encoder.encode(text);
             controller.enqueue(queue);
           } catch (e) {
@@ -142,7 +142,6 @@ export const OpenAIStream = async (
       }
       // TODO: Invest OPENAI BUG finish reason should be populated, 
       // but never in stream mode this is a work around
-      lastChunk.choices[0].finish_reason = "DONE";
       parser.feed(decoder.decode(lastChunk));
     },
   });

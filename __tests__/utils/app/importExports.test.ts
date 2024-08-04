@@ -201,6 +201,7 @@ describe('cleanData Functions', () => {
             model: OpenAIModels[OpenAIModelID.GPT_3_5],
             prompt: DEFAULT_SYSTEM_PROMPT,
             temperature: DEFAULT_TEMPERATURE,
+            images: undefined,
             folderId: null,
           },
         ],

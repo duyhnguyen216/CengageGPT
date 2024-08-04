@@ -21,6 +21,7 @@ export interface HomeContextProps {
     data: KeyValuePair,
   ) => void;
   handleUploadDocument: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleUploadImage: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const HomeContext = createContext<HomeContextProps>(undefined!);

@@ -20,7 +20,7 @@ import {
 } from '@/utils/app/conversation';
 import { throttle } from '@/utils/data/throttle';
 
-import { ChatBody, Conversation, Message } from '@/types/chat';
+import { ChatBody, Conversation, ImageContent, Message, MultimodalMessage, RequestBody } from '@/types/chat';
 import { Plugin, PluginID } from '@/types/plugin';
 
 import HomeContext from '@/pages/api/home/home.context';
@@ -73,6 +73,58 @@ export const Chat = memo(({ stopConversationRef, accountCost }: Props) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  function convertChatBodyToRequestBody(chatBody: ChatBody, uploadedImages?: string[]): RequestBody | ChatBody {
+    // If there are no uploaded images, return the original ChatBody
+    if (!uploadedImages || uploadedImages.length === 0) {
+      return chatBody;
+    }
+  
+    // Convert messages to MultimodalMessage format
+    const multimodalMessages: MultimodalMessage[] = chatBody.messages.map((msg): MultimodalMessage => ({
+      role: msg.role,
+      content: [
+        {
+          type: "text",
+          text: msg.content
+        }
+      ],
+      plugin: msg.plugin
+    }));
+  
+    // Add uploaded images as ImageContent items to the messages
+    uploadedImages.forEach((base64Image, index) => {
+      const imageContent: ImageContent = {
+        type: "image_url",
+        image_url: {
+          url: `${base64Image}` // Assuming the image is in PNG format
+        }
+      };
+  
+      // Append image content to the last message or create a new message if none exists
+      if (multimodalMessages.length > 0) {
+        multimodalMessages[multimodalMessages.length - 1].content.push(imageContent);
+      } else {
+        multimodalMessages.push({
+          role: "user", // Assuming the role to be 'user' for the new image message
+          content: [imageContent]
+        });
+      }
+    });
+  
+    // Construct and return the RequestBody
+    const requestBody: RequestBody = {
+      model: chatBody.model,
+      messages: multimodalMessages,
+      key: chatBody.key,
+      prompt: chatBody.prompt,
+      temperature: chatBody.temperature,
+      sasToken: chatBody.sasToken,
+      username: chatBody.username
+    };
+  
+    return requestBody;
+  }
+
   const handleSend = useCallback(
     async (message: Message, deleteCount = 0, plugin: Plugin | null = null) => {
       if (selectedConversation) {
@@ -113,7 +165,8 @@ export const Chat = memo(({ stopConversationRef, accountCost }: Props) => {
         const endpoint = getEndpoint(plugin);
         let body;
         if (!plugin || plugin.id == PluginID.DOC_CHAT) {
-          body = JSON.stringify(chatBody);
+          const requestBody = convertChatBodyToRequestBody(chatBody, selectedConversation.images);
+          body = JSON.stringify(requestBody);
         } else if (pluginKeys && pluginKeys.length != 0) { //Using plugin such as google
           //Pass plugin keys if exist
           body = JSON.stringify({

@@ -19,10 +19,43 @@ export interface ChatBody {
   username: string;
 }
 
+export interface MultimodalMessage {
+  role: Role;
+  content: ContentItem[];
+  plugin?: PluginID;
+}
+
+export type ContentItem = 
+  | TextContent
+  | ImageContent;
+
+export interface TextContent {
+  type: "text";
+  text: string;
+}
+
+export interface ImageContent {
+  type: "image_url";
+  image_url: {
+    url: string;
+  };
+}
+
+export interface RequestBody {
+  model: OpenAIModel;
+  messages: MultimodalMessage[];
+  key: string;
+  prompt: string;
+  temperature: number;
+  sasToken: string;
+  username: string;
+}
+
 export interface Conversation {
   id: string;
   name: string;
   messages: Message[];
+  images: string[] | undefined;
   model: OpenAIModel;
   prompt: string;
   temperature: number;

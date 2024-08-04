@@ -190,6 +190,7 @@ const Home = ({
       id: uuidv4(),
       name: t('New Conversation'),
       messages: [],
+      images: undefined,
       model: lastConversation?.model || {
         id: OpenAIModels[defaultModelId].id,
         name: OpenAIModels[defaultModelId].name,
@@ -287,6 +288,91 @@ const Home = ({
     }
   };
 
+  const resizeImage = (file: File, maxWidth: number, maxHeight: number): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+  
+          const ratio = Math.min(maxWidth / img.width, maxHeight / img.height);
+          canvas.width = img.width * ratio;
+          canvas.height = img.height * ratio;
+  
+          ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+  
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const compressedFileReader = new FileReader();
+                compressedFileReader.readAsDataURL(blob);
+                compressedFileReader.onloadend = () => {
+                  resolve(compressedFileReader.result as string);
+                };
+              } else {
+                reject(new Error('Compression failed'));
+              }
+            },
+            'image/jpeg',
+            0.7 // 70% quality
+          );
+        };
+        img.onerror = () => {
+          reject(new Error('Image loading failed'));
+        };
+      };
+      reader.onerror = () => {
+        reject(new Error('File reading failed'));
+      };
+    });
+  };
+  
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedConversation) {
+      alert('No conversation selected.');
+      return;
+    }
+    try {
+      const MAX_TOTAL_SIZE = 5 * 1024 * 1024; // 5MB
+      let ignoredFiles: string[] = [];
+      let totalSize = 0;
+  
+      for (const file of Array.from(e.target.files || [])) {
+        if (totalSize + file.size > MAX_TOTAL_SIZE) {
+          ignoredFiles.push(file.name);
+          continue;
+        }
+  
+        const resizedBase64 = await resizeImage(file, 512, 512); // Resize to 512x512 keeping aspect ratio
+        const resizedFileSize = (resizedBase64.length * 6) / 8; // Approximate size calculation
+  
+        if (totalSize + resizedFileSize <= MAX_TOTAL_SIZE) {
+          if (!selectedConversation.images) {
+            selectedConversation.images = [];
+          }
+          selectedConversation.images.push(resizedBase64);
+          totalSize += resizedFileSize;
+        } else {
+          ignoredFiles.push(file.name);
+        }
+      }
+  
+      if (ignoredFiles.length > 0) {
+        alert(`The following files were not uploaded because they exceed the total size limit of 5MB: ${ignoredFiles.join(", ")}`);
+      } else {
+        alert('Files uploaded successfully!');
+      }
+    } catch (err) {
+      console.error('Error uploading files:', err);
+      alert("Error uploading files " + err);
+    }
+  };
+   
+  
   // EFFECTS  --------------------------------------------
 
   useEffect(() => {
@@ -448,6 +534,7 @@ const Home = ({
         handleSelectConversation,
         handleUpdateConversation,
         handleUploadDocument,
+        handleUploadImage,
       }}
     >
       <Head>
